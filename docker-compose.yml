@@ -44,6 +44,12 @@ services:
       timeout: 5s
       retries: 5
 
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    ports:
+      - '3100:3000'
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

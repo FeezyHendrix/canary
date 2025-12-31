@@ -11,6 +11,8 @@ export interface Template {
   thumbnailUrl: string | null;
   currentVersionId: string | null;
   isActive: boolean;
+  generatePdf: boolean;
+  pdfFilename: string | null;
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -35,6 +37,8 @@ export interface CreateTemplateInput {
   description?: string;
   subject: string;
   designJson: Record<string, unknown>;
+  generatePdf?: boolean;
+  pdfFilename?: string;
 }
 
 export interface UpdateTemplateInput {
@@ -44,6 +48,8 @@ export interface UpdateTemplateInput {
   subject?: string;
   designJson?: Record<string, unknown>;
   isActive?: boolean;
+  generatePdf?: boolean;
+  pdfFilename?: string;
 }
 
 export interface TemplatePreviewInput {

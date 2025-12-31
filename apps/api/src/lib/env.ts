@@ -20,6 +20,14 @@ const envSchema = z.object({
   S3_SECRET_KEY: z.string().optional(),
   S3_REGION: z.string().default('us-east-1'),
   S3_PUBLIC_URL: z.string().url().optional(), // Public URL for serving files (CDN or direct)
+  // PDF Generation (Gotenberg)
+  GOTENBERG_URL: z.string().url().optional(),
+  // Background Worker
+  WORKER_ENABLED: z
+    .string()
+    .transform((val) => val === 'true')
+    .default('true'),
+  WORKER_CONCURRENCY: z.coerce.number().default(5),
 });
 
 export type Env = z.infer<typeof envSchema>;

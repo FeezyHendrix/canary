@@ -3,7 +3,11 @@ import { db, templates, templateVersions } from '../../db';
 import { generateTemplateSlug } from '../../lib/slug';
 import { extractVariables, renderTemplate } from '../../lib/handlebars';
 import { NotFoundError, ConflictError } from '../../lib/errors';
-import type { CreateTemplateInput, UpdateTemplateInput, ListTemplatesInput } from './templates.schema';
+import type {
+  CreateTemplateInput,
+  UpdateTemplateInput,
+  ListTemplatesInput,
+} from './templates.schema';
 
 export async function listTemplates(teamId: string, params: ListTemplatesInput) {
   const { page, pageSize, search, isActive } = params;
@@ -26,7 +30,10 @@ export async function listTemplates(teamId: string, params: ListTemplatesInput) 
       limit: pageSize,
       offset,
     }),
-    db.select({ total: count() }).from(templates).where(and(...conditions)),
+    db
+      .select({ total: count() })
+      .from(templates)
+      .where(and(...conditions)),
   ]);
 
   return {
@@ -97,6 +104,8 @@ export async function createTemplate(teamId: string, userId: string, input: Crea
       designJson: input.designJson,
       compiledHtml,
       variables,
+      generatePdf: input.generatePdf ?? false,
+      pdfFilename: input.pdfFilename,
       createdBy: userId,
     })
     .returning();
@@ -122,7 +131,12 @@ export async function createTemplate(teamId: string, userId: string, input: Crea
   return { ...template, currentVersionId: version.id };
 }
 
-export async function updateTemplate(teamId: string, id: string, userId: string, input: UpdateTemplateInput) {
+export async function updateTemplate(
+  teamId: string,
+  id: string,
+  userId: string,
+  input: UpdateTemplateInput
+) {
   const template = await getTemplate(teamId, id);
 
   if (input.slug && input.slug !== template.slug) {
@@ -142,6 +156,8 @@ export async function updateTemplate(teamId: string, id: string, userId: string,
   if (input.description !== undefined) updates.description = input.description;
   if (input.subject !== undefined) updates.subject = input.subject;
   if (input.isActive !== undefined) updates.isActive = input.isActive;
+  if (input.generatePdf !== undefined) updates.generatePdf = input.generatePdf;
+  if (input.pdfFilename !== undefined) updates.pdfFilename = input.pdfFilename;
 
   if (input.designJson !== undefined) {
     updates.designJson = input.designJson;
@@ -149,11 +165,7 @@ export async function updateTemplate(teamId: string, id: string, userId: string,
     updates.compiledHtml = compileDesignToHtml(input.designJson);
   }
 
-  const [updated] = await db
-    .update(templates)
-    .set(updates)
-    .where(eq(templates.id, id))
-    .returning();
+  const [updated] = await db.update(templates).set(updates).where(eq(templates.id, id)).returning();
 
   return updated;
 }
@@ -188,7 +200,12 @@ export async function duplicateTemplate(teamId: string, id: string, userId: stri
   return duplicate;
 }
 
-export async function createVersion(teamId: string, templateId: string, userId: string, name?: string) {
+export async function createVersion(
+  teamId: string,
+  templateId: string,
+  userId: string,
+  name?: string
+) {
   const template = await getTemplate(teamId, templateId);
 
   const lastVersion = await db.query.templateVersions.findFirst({
@@ -229,7 +246,12 @@ export async function listVersions(teamId: string, templateId: string) {
   });
 }
 
-export async function restoreVersion(teamId: string, templateId: string, versionId: string, userId: string) {
+export async function restoreVersion(
+  teamId: string,
+  templateId: string,
+  versionId: string,
+  userId: string
+) {
   await getTemplate(teamId, templateId);
 
   const version = await db.query.templateVersions.findFirst({
@@ -279,5 +301,8 @@ function compileDesignToHtml(designJson: Record<string, unknown>): string {
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

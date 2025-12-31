@@ -6,6 +6,8 @@ export const createTemplateSchema = z.object({
   description: z.string().max(500).optional(),
   subject: z.string().min(1).max(200),
   designJson: z.record(z.unknown()),
+  generatePdf: z.boolean().optional(),
+  pdfFilename: z.string().max(100).optional(),
 });
 
 export const updateTemplateSchema = z.object({
@@ -15,6 +17,8 @@ export const updateTemplateSchema = z.object({
   subject: z.string().min(1).max(200).optional(),
   designJson: z.record(z.unknown()).optional(),
   isActive: z.boolean().optional(),
+  generatePdf: z.boolean().optional(),
+  pdfFilename: z.string().max(100).optional(),
 });
 
 export const templatePreviewSchema = z.object({

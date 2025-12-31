@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, FileText } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,8 @@ export function TemplateDesigner() {
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('');
   const [designJson, setDesignJson] = useState<EditorDocument>(DEFAULT_DESIGN);
+  const [generatePdf, setGeneratePdf] = useState(false);
+  const [pdfFilename, setPdfFilename] = useState('');
 
   const { data: templateData, isLoading } = useQuery({
     queryKey: ['template', id],
@@ -44,6 +46,8 @@ export function TemplateDesigner() {
       setName(template.name);
       setSubject(template.subject);
       setDesignJson(template.designJson as EditorDocument);
+      setGeneratePdf(template.generatePdf ?? false);
+      setPdfFilename(template.pdfFilename ?? '');
     }
   }, [templateData]);
 
@@ -53,7 +57,13 @@ export function TemplateDesigner() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { name, subject, designJson };
+      const payload = {
+        name,
+        subject,
+        designJson,
+        generatePdf,
+        pdfFilename: pdfFilename || undefined,
+      };
       if (isNew) {
         return api.post<{ success: boolean; data: Template }>('/api/templates', payload);
       }
@@ -127,6 +137,38 @@ export function TemplateDesigner() {
             placeholder="Welcome to {{companyName}}, {{firstName}}!"
           />
         </div>
+      </div>
+
+      <div className="flex items-start gap-6 p-4 border rounded-lg bg-muted/30">
+        <div className="flex items-center gap-3">
+          <FileText className="h-5 w-5 text-muted-foreground" />
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="generatePdf"
+              checked={generatePdf}
+              onChange={(e) => setGeneratePdf(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <Label htmlFor="generatePdf" className="font-medium cursor-pointer">
+              Generate PDF attachment
+            </Label>
+          </div>
+        </div>
+        {generatePdf && (
+          <div className="flex-1 max-w-xs">
+            <Label htmlFor="pdfFilename" className="text-sm text-muted-foreground">
+              PDF Filename (optional)
+            </Label>
+            <Input
+              id="pdfFilename"
+              value={pdfFilename}
+              onChange={(e) => setPdfFilename(e.target.value)}
+              placeholder="invoice.pdf"
+              className="mt-1"
+            />
+          </div>
+        )}
       </div>
 
       <EmailEditor initialDocument={designJson} onChange={handleDocumentChange} />
