@@ -1,0 +1,28 @@
+{
+  "name": "canary",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open-source email template designer with drag-and-drop builder",
+  "keywords": ["email", "template", "designer", "sendgrid", "self-hosted"],
+  "license": "MIT",
+  "author": "",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @canary/api db:generate",
+    "db:migrate": "pnpm --filter @canary/api db:migrate",
+    "db:studio": "pnpm --filter @canary/api db:studio",
+    "clean": "turbo clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@9.15.1",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
