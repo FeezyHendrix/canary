@@ -3,8 +3,17 @@ import { nanoid } from 'nanoid';
 import { db, teams, teamMembers, teamInvites, users } from '../../db';
 import { generateTeamSlug } from '../../lib/slug';
 import { NotFoundError, ForbiddenError, ConflictError } from '../../lib/errors';
-import type { CreateTeamInput, UpdateTeamInput, InviteMemberInput, UpdateMemberRoleInput } from './teams.schema';
-import type { TeamRole } from '@canary/shared';
+import { getDefaultAdapter, getAdapterWithConfig } from '../adapters/adapters.service';
+import { createAdapter } from '../../adapters/adapter.factory';
+import { decryptJson } from '../../lib/encryption';
+import { env } from '../../lib/env';
+import type {
+  CreateTeamInput,
+  UpdateTeamInput,
+  InviteMemberInput,
+  UpdateMemberRoleInput,
+} from './teams.schema';
+import type { TeamRole, AdapterType } from '@canary/shared';
 
 export async function createTeam(userId: string, input: CreateTeamInput) {
   const slug = generateTeamSlug(input.name);
@@ -135,7 +144,78 @@ export async function inviteMember(userId: string, teamId: string, input: Invite
     })
     .returning();
 
-  return invite;
+  const team = await db.query.teams.findFirst({
+    where: eq(teams.id, teamId),
+  });
+
+  const emailSent = await sendInviteEmail(teamId, input.email, team?.name || 'the team', token);
+  const inviteUrl = `${env.APP_URL}/invite?token=${token}`;
+
+  return { ...invite, emailSent, inviteUrl };
+}
+
+async function sendInviteEmail(
+  teamId: string,
+  email: string,
+  teamName: string,
+  token: string
+): Promise<boolean> {
+  try {
+    const adapter = await getDefaultAdapter(teamId);
+    if (!adapter || !adapter.defaultFrom) {
+      return false;
+    }
+
+    const config = decryptJson(adapter.configEncrypted);
+    const emailAdapter = createAdapter(adapter.type as AdapterType, config);
+
+    const inviteUrl = `${env.APP_URL}/invite?token=${token}`;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">You're Invited!</h1>
+  </div>
+  <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+    <p style="font-size: 16px; margin-bottom: 20px;">
+      You've been invited to join <strong>${teamName}</strong> on Canary.
+    </p>
+    <p style="font-size: 14px; color: #666; margin-bottom: 25px;">
+      Click the button below to accept the invitation and join the team. This invite expires in 7 days.
+    </p>
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${inviteUrl}" style="background: #7c3aed; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;">
+        Accept Invitation
+      </a>
+    </div>
+    <p style="font-size: 12px; color: #999; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      If you didn't expect this invitation, you can safely ignore this email.
+    </p>
+    <p style="font-size: 12px; color: #999;">
+      Or copy this link: <a href="${inviteUrl}" style="color: #7c3aed;">${inviteUrl}</a>
+    </p>
+  </div>
+</body>
+</html>`;
+
+    await emailAdapter.send({
+      from: adapter.defaultFrom,
+      to: [email],
+      subject: `You're invited to join ${teamName} on Canary`,
+      html,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to send invite email:', error);
+    return false;
+  }
 }
 
 export async function acceptInvite(userId: string, token: string) {
@@ -172,6 +252,38 @@ export async function acceptInvite(userId: string, token: string) {
   return db.query.teams.findFirst({
     where: eq(teams.id, invite.teamId),
   });
+}
+
+export async function listInvites(teamId: string) {
+  const invites = await db.query.teamInvites.findMany({
+    where: eq(teamInvites.teamId, teamId),
+  });
+
+  return invites.map((i) => ({
+    id: i.id,
+    email: i.email,
+    role: i.role,
+    expiresAt: i.expiresAt,
+    createdAt: i.createdAt,
+  }));
+}
+
+export async function cancelInvite(userId: string, teamId: string, inviteId: string) {
+  const membership = await getMembership(userId, teamId);
+
+  if (membership.role !== 'owner' && membership.role !== 'admin') {
+    throw new ForbiddenError('Only owners and admins can cancel invites');
+  }
+
+  const invite = await db.query.teamInvites.findFirst({
+    where: and(eq(teamInvites.id, inviteId), eq(teamInvites.teamId, teamId)),
+  });
+
+  if (!invite) {
+    throw new NotFoundError('Invite');
+  }
+
+  await db.delete(teamInvites).where(eq(teamInvites.id, inviteId));
 }
 
 export async function removeMember(userId: string, teamId: string, memberUserId: string) {

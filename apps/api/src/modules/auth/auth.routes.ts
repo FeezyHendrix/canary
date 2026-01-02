@@ -2,29 +2,41 @@ import type { FastifyInstance } from 'fastify';
 import { env } from '../../lib/env';
 import { getGoogleAuthUrl, getGoogleTokens, getGoogleProfile } from './oauth/google';
 import { getGitHubAuthUrl, getGitHubTokens, getGitHubProfile } from './oauth/github';
-import {
-  findOrCreateUser,
-  createSession,
-  deleteSession,
-  getSessionUser,
-  getUserTeams,
-  switchActiveTeam,
-} from './auth.service';
+import { findOrCreateUser, createSession, deleteSession, switchActiveTeam } from './auth.service';
 import { requireAuth } from './middleware/session';
 import { switchTeamSchema } from './auth.schema';
 import { UnauthorizedError } from '../../lib/errors';
+
+function parseRedirectFromState(state?: string): string {
+  if (!state) return '/';
+  try {
+    const parsed = JSON.parse(Buffer.from(state, 'base64').toString());
+    if (parsed.redirect && parsed.redirect.startsWith('/')) {
+      return parsed.redirect;
+    }
+  } catch {
+    return '/';
+  }
+  return '/';
+}
+
+function encodeRedirectState(redirect?: string): string | undefined {
+  if (!redirect) return undefined;
+  return Buffer.from(JSON.stringify({ redirect })).toString('base64');
+}
 
 export async function authRoutes(app: FastifyInstance) {
   app.get('/google', async (request, reply) => {
     if (!env.GOOGLE_CLIENT_ID) {
       return reply.status(501).send({ error: 'Google OAuth not configured' });
     }
-    const url = getGoogleAuthUrl();
+    const { redirect } = request.query as { redirect?: string };
+    const url = getGoogleAuthUrl(encodeRedirectState(redirect));
     return reply.redirect(url);
   });
 
   app.get('/google/callback', async (request, reply) => {
-    const { code } = request.query as { code?: string };
+    const { code, state } = request.query as { code?: string; state?: string };
 
     if (!code) {
       return reply.redirect(`${env.APP_URL}/login?error=no_code`);
@@ -44,7 +56,7 @@ export async function authRoutes(app: FastifyInstance) {
         maxAge: 30 * 24 * 60 * 60,
       });
 
-      return reply.redirect(`${env.APP_URL}/`);
+      return reply.redirect(`${env.APP_URL}${parseRedirectFromState(state)}`);
     } catch (error) {
       request.log.error(error);
       return reply.redirect(`${env.APP_URL}/login?error=oauth_failed`);
@@ -55,12 +67,13 @@ export async function authRoutes(app: FastifyInstance) {
     if (!env.GITHUB_CLIENT_ID) {
       return reply.status(501).send({ error: 'GitHub OAuth not configured' });
     }
-    const url = getGitHubAuthUrl();
+    const { redirect } = request.query as { redirect?: string };
+    const url = getGitHubAuthUrl(encodeRedirectState(redirect));
     return reply.redirect(url);
   });
 
   app.get('/github/callback', async (request, reply) => {
-    const { code } = request.query as { code?: string };
+    const { code, state } = request.query as { code?: string; state?: string };
 
     if (!code) {
       return reply.redirect(`${env.APP_URL}/login?error=no_code`);
@@ -80,7 +93,7 @@ export async function authRoutes(app: FastifyInstance) {
         maxAge: 30 * 24 * 60 * 60,
       });
 
-      return reply.redirect(`${env.APP_URL}/`);
+      return reply.redirect(`${env.APP_URL}${parseRedirectFromState(state)}`);
     } catch (error) {
       request.log.error(error);
       return reply.redirect(`${env.APP_URL}/login?error=oauth_failed`);

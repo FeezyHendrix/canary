@@ -6,8 +6,10 @@ import {
   updateTeam,
   deleteTeam,
   listMembers,
+  listInvites,
   inviteMember,
   acceptInvite,
+  cancelInvite,
   removeMember,
   updateMemberRole,
 } from './teams.service';
@@ -51,6 +53,13 @@ export async function teamsRoutes(app: FastifyInstance) {
     return { success: true, data: members };
   });
 
+  app.get('/:id/invites', { preHandler: requireAuth }, async (request) => {
+    const { id } = request.params as { id: string };
+    await getTeam(request.user!.id, id);
+    const invites = await listInvites(id);
+    return { success: true, data: invites };
+  });
+
   app.post('/:id/invite', { preHandler: requirePermission('team:invite') }, async (request) => {
     const { id } = request.params as { id: string };
     const input = inviteMemberSchema.parse(request.body);
@@ -58,22 +67,40 @@ export async function teamsRoutes(app: FastifyInstance) {
     return { success: true, data: invite };
   });
 
+  app.delete(
+    '/:id/invites/:inviteId',
+    { preHandler: requirePermission('team:invite') },
+    async (request) => {
+      const { id, inviteId } = request.params as { id: string; inviteId: string };
+      await cancelInvite(request.user!.id, id, inviteId);
+      return { success: true };
+    }
+  );
+
   app.post('/accept-invite/:token', { preHandler: requireAuth }, async (request) => {
     const { token } = request.params as { token: string };
     const team = await acceptInvite(request.user!.id, token);
     return { success: true, data: team };
   });
 
-  app.delete('/:id/members/:userId', { preHandler: requirePermission('team:remove-member') }, async (request) => {
-    const { id, userId } = request.params as { id: string; userId: string };
-    await removeMember(request.user!.id, id, userId);
-    return { success: true };
-  });
+  app.delete(
+    '/:id/members/:userId',
+    { preHandler: requirePermission('team:remove-member') },
+    async (request) => {
+      const { id, userId } = request.params as { id: string; userId: string };
+      await removeMember(request.user!.id, id, userId);
+      return { success: true };
+    }
+  );
 
-  app.put('/:id/members/:userId', { preHandler: requirePermission('team:update-role') }, async (request) => {
-    const { id, userId } = request.params as { id: string; userId: string };
-    const input = updateMemberRoleSchema.parse(request.body);
-    const member = await updateMemberRole(request.user!.id, id, userId, input);
-    return { success: true, data: member };
-  });
+  app.put(
+    '/:id/members/:userId',
+    { preHandler: requirePermission('team:update-role') },
+    async (request) => {
+      const { id, userId } = request.params as { id: string; userId: string };
+      const input = updateMemberRoleSchema.parse(request.body);
+      const member = await updateMemberRole(request.user!.id, id, userId, input);
+      return { success: true, data: member };
+    }
+  );
 }

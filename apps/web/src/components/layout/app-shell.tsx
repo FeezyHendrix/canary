@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import {
+  LayoutDashboard,
   LayoutTemplate,
-  Mail,
   Key,
   Webhook,
   Settings,
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const navigation = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Templates', href: '/templates', icon: LayoutTemplate },
   { name: 'Adapters', href: '/adapters', icon: Plug },
   { name: 'Email Logs', href: '/logs', icon: ScrollText },
@@ -39,25 +40,30 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const initials = user?.name
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase() || user?.email?.[0]?.toUpperCase() || '?';
+  const initials =
+    user?.name
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase() ||
+    user?.email?.[0]?.toUpperCase() ||
+    '?';
 
   return (
     <div className="flex h-screen bg-background">
       <aside className="w-64 border-r bg-card flex flex-col">
         <div className="p-4 border-b">
           <Link to="/" className="flex items-center gap-2">
-            <Mail className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg">Canary</span>
+            <span className="font-bold text-xl">Canary</span>
           </Link>
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
           {navigation.map((item) => {
-            const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+            const isActive =
+              item.href === '/'
+                ? location.pathname === '/'
+                : location.pathname === item.href || location.pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.name}
@@ -85,8 +91,12 @@ export function AppShell({ children }: AppShellProps) {
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start text-left overflow-hidden">
-                  <span className="text-sm font-medium truncate w-full">{user?.name || 'User'}</span>
-                  <span className="text-xs text-muted-foreground truncate w-full">{user?.email}</span>
+                  <span className="text-sm font-medium truncate w-full">
+                    {user?.name || 'User'}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate w-full">
+                    {user?.email}
+                  </span>
                 </div>
               </Button>
             </DropdownMenuTrigger>

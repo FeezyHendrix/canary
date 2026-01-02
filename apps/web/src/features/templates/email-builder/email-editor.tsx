@@ -8,6 +8,10 @@ import {
   Redo2,
   Copy,
   Clipboard,
+  Download,
+  Keyboard,
+  X,
+  ClipboardCopy,
 } from 'lucide-react';
 import { Reader, renderToStaticMarkup, TReaderDocument } from '@usewaypoint/email-builder';
 import {
@@ -23,16 +27,60 @@ import { Button } from '@/components/ui/button';
 
 type ViewMode = 'editor' | 'preview' | 'html';
 
+function formatHtml(html: string): string {
+  let formatted = '';
+  let indent = 0;
+  const tab = '  ';
+
+  const tokens = html.replace(/>\s*</g, '>\n<').split('\n');
+
+  for (const token of tokens) {
+    const trimmed = token.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.startsWith('</')) {
+      indent = Math.max(0, indent - 1);
+    }
+
+    formatted += tab.repeat(indent) + trimmed + '\n';
+
+    if (
+      trimmed.startsWith('<') &&
+      !trimmed.startsWith('</') &&
+      !trimmed.startsWith('<!') &&
+      !trimmed.endsWith('/>') &&
+      !trimmed.includes('</') &&
+      !/<(meta|link|img|br|hr|input)\b/i.test(trimmed)
+    ) {
+      indent++;
+    }
+  }
+
+  return formatted.trim();
+}
+
 interface EmailEditorProps {
   initialDocument?: EditorDocument;
   onChange?: (document: EditorDocument) => void;
   sampleData?: Record<string, string>;
 }
 
+const KEYBOARD_SHORTCUTS = [
+  { keys: ['Ctrl', 'Z'], action: 'Undo' },
+  { keys: ['Ctrl', 'Shift', 'Z'], action: 'Redo' },
+  { keys: ['Ctrl', 'Y'], action: 'Redo (alternative)' },
+  { keys: ['Ctrl', 'C'], action: 'Copy selected block' },
+  { keys: ['Ctrl', 'V'], action: 'Paste block' },
+  { keys: ['Ctrl', 'D'], action: 'Duplicate selected block' },
+  { keys: ['Delete'], action: 'Delete selected block' },
+  { keys: ['Backspace'], action: 'Delete selected block' },
+];
+
 export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEditorProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('editor');
   const [screenSize, setScreenSize] = useState<'desktop' | 'mobile'>('desktop');
   const [showVariables, setShowVariables] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const document = useEditorStore((s) => s.document);
   const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
@@ -54,7 +102,7 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
     if (initialDocument) {
       resetDocument(initialDocument);
     }
-  }, []);
+  }, [initialDocument, resetDocument]);
 
   useEffect(() => {
     onChange?.(document);
@@ -108,6 +156,12 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
         deleteBlock(selectedBlockId);
         return;
       }
+
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
+        e.preventDefault();
+        setShowShortcuts(true);
+        return;
+      }
     },
     [selectedBlockId, clipboard, undo, redo, copyBlock, pasteBlock, duplicateBlock, deleteBlock]
   );
@@ -136,6 +190,24 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
       return '<!-- Error rendering template -->';
     }
   })();
+
+  const downloadHtml = () => {
+    const formattedHtml = formatHtml(htmlOutput);
+    const blob = new Blob([formattedHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = 'email-template.html';
+    window.document.body.appendChild(a);
+    a.click();
+    window.document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const copyHtmlToClipboard = async () => {
+    const formattedHtml = formatHtml(htmlOutput);
+    await navigator.clipboard.writeText(formattedHtml);
+  };
 
   return (
     <div className="flex h-[700px] border rounded-lg overflow-hidden bg-background">
@@ -218,6 +290,16 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
                 >
                   <Clipboard className="h-4 w-4" />
                 </Button>
+                <div className="w-px h-4 bg-border mx-1" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowShortcuts(true)}
+                  title="Keyboard shortcuts (?)"
+                  className="h-8 w-8"
+                >
+                  <Keyboard className="h-4 w-4" />
+                </Button>
               </div>
             )}
           </div>
@@ -295,9 +377,19 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
           )}
 
           {viewMode === 'html' && (
-            <div className="max-w-4xl mx-auto">
-              <pre className="p-4 bg-white border rounded-lg text-sm font-mono overflow-auto max-h-full">
-                <code>{htmlOutput}</code>
+            <div className="h-full flex flex-col">
+              <div className="flex justify-end gap-2 mb-2">
+                <Button variant="outline" size="sm" onClick={copyHtmlToClipboard}>
+                  <ClipboardCopy className="mr-2 h-4 w-4" />
+                  Copy HTML
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadHtml}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download HTML
+                </Button>
+              </div>
+              <pre className="flex-1 p-4 bg-white border rounded-lg text-sm font-mono overflow-auto whitespace-pre-wrap">
+                <code>{formatHtml(htmlOutput)}</code>
               </pre>
             </div>
           )}
@@ -307,6 +399,47 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
       {viewMode === 'editor' && inspectorOpen && (
         <div className="w-72 border-l bg-background flex-shrink-0 overflow-hidden">
           <InspectorPanel />
+        </div>
+      )}
+
+      {showShortcuts && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowShortcuts(false)} />
+          <div className="relative bg-background rounded-lg shadow-lg w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Keyboard Shortcuts</h2>
+              <button
+                onClick={() => setShowShortcuts(false)}
+                className="p-1 hover:bg-muted rounded"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <div className="space-y-2">
+                {KEYBOARD_SHORTCUTS.map((shortcut, i) => (
+                  <div key={i} className="flex items-center justify-between py-2">
+                    <span className="text-sm">{shortcut.action}</span>
+                    <div className="flex gap-1">
+                      {shortcut.keys.map((key, j) => (
+                        <kbd
+                          key={j}
+                          className="px-2 py-1 text-xs font-mono bg-muted border rounded"
+                        >
+                          {key}
+                        </kbd>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 pt-4 border-t">
+                Press{' '}
+                <kbd className="px-1.5 py-0.5 text-xs font-mono bg-muted border rounded">?</kbd> to
+                show this dialog
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

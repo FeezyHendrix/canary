@@ -42,10 +42,10 @@ export async function uploadsRoutes(app: FastifyInstance) {
   });
 
   app.delete(
-    '/images/:key(*)',
+    '/images/*',
     { preHandler: requirePermission('templates:update') },
     async (request) => {
-      const { key } = request.params as { key: string };
+      const key = (request.params as { '*': string })['*'];
       await deleteImage(key);
       return { success: true };
     }

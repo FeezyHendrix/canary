@@ -125,19 +125,24 @@ function StylesPanel({ rootBlock }: StylesPanelProps) {
         <div>
           <Label>Font Family</Label>
           <select
-            value={data.fontFamily || 'MODERN_SANS'}
+            value={data.fontFamily || 'Inter'}
             onChange={(e) => updateBlock('root', { fontFamily: e.target.value })}
             className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
           >
-            <option value="MODERN_SANS">Modern Sans</option>
-            <option value="BOOK_SANS">Book Sans</option>
-            <option value="ORGANIC_SANS">Organic Sans</option>
-            <option value="GEOMETRIC_SANS">Geometric Sans</option>
-            <option value="HEAVY_SANS">Heavy Sans</option>
-            <option value="ROUNDED_SANS">Rounded Sans</option>
-            <option value="MODERN_SERIF">Modern Serif</option>
-            <option value="BOOK_SERIF">Book Serif</option>
-            <option value="MONOSPACE">Monospace</option>
+            <option value="Inter">Inter</option>
+            <option value="Roboto">Roboto</option>
+            <option value="Open Sans">Open Sans</option>
+            <option value="Lato">Lato</option>
+            <option value="Poppins">Poppins</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Source Sans 3">Source Sans 3</option>
+            <option value="Nunito">Nunito</option>
+            <option value="Raleway">Raleway</option>
+            <option value="Playfair Display">Playfair Display</option>
+            <option value="Merriweather">Merriweather</option>
+            <option value="Lora">Lora</option>
+            <option value="Fira Code">Fira Code</option>
+            <option value="JetBrains Mono">JetBrains Mono</option>
           </select>
         </div>
       </div>
@@ -432,6 +437,487 @@ function BlockConfigPanel({ blockId, block }: BlockConfigPanelProps) {
         </div>
       )}
 
+      {block.type === 'Video' && (
+        <>
+          <ImageUpload
+            label="Thumbnail Image"
+            value={(props.thumbnailUrl as string) || ''}
+            onChange={(url) => updateProps({ thumbnailUrl: url })}
+          />
+          <div>
+            <Label>Video URL</Label>
+            <Input
+              value={(props.videoUrl as string) || ''}
+              onChange={(e) => updateProps({ videoUrl: e.target.value })}
+              className="mt-1"
+              placeholder="https://youtube.com/..."
+            />
+          </div>
+          <div>
+            <Label>Alt Text</Label>
+            <Input
+              value={(props.alt as string) || ''}
+              onChange={(e) => updateProps({ alt: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+        </>
+      )}
+
+      {block.type === 'Quote' && (
+        <>
+          <div>
+            <Label>Quote Text</Label>
+            <textarea
+              value={(props.text as string) || ''}
+              onChange={(e) => updateProps({ text: e.target.value })}
+              rows={3}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background resize-none"
+            />
+          </div>
+          <div>
+            <Label>Author</Label>
+            <Input
+              value={(props.author as string) || ''}
+              onChange={(e) => updateProps({ author: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label>Author Title</Label>
+            <Input
+              value={(props.authorTitle as string) || ''}
+              onChange={(e) => updateProps({ authorTitle: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label>Border Color</Label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="color"
+                value={(props.borderColor as string) || '#3b82f6'}
+                onChange={(e) => updateProps({ borderColor: e.target.value })}
+                className="w-10 h-10 rounded border cursor-pointer"
+              />
+              <Input
+                value={(props.borderColor as string) || '#3b82f6'}
+                onChange={(e) => updateProps({ borderColor: e.target.value })}
+                className="flex-1"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="showQuoteMark"
+              checked={(props.showQuoteMark as boolean) ?? true}
+              onChange={(e) => updateProps({ showQuoteMark: e.target.checked })}
+            />
+            <Label htmlFor="showQuoteMark">Show quote mark</Label>
+          </div>
+        </>
+      )}
+
+      {block.type === 'List' && (
+        <>
+          <div>
+            <Label>List Type</Label>
+            <select
+              value={(props.listType as string) || 'bullet'}
+              onChange={(e) => updateProps({ listType: e.target.value })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
+            >
+              <option value="bullet">Bullet</option>
+              <option value="number">Numbered</option>
+            </select>
+          </div>
+          <div>
+            <Label>Items (one per line)</Label>
+            <textarea
+              value={((props.items as string[]) || []).join('\n')}
+              onChange={(e) => updateProps({ items: e.target.value.split('\n') })}
+              rows={5}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background resize-none"
+            />
+          </div>
+          {(props.listType as string) !== 'number' && (
+            <div>
+              <Label>Bullet Color</Label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  type="color"
+                  value={(props.bulletColor as string) || '#3b82f6'}
+                  onChange={(e) => updateProps({ bulletColor: e.target.value })}
+                  className="w-10 h-10 rounded border cursor-pointer"
+                />
+                <Input
+                  value={(props.bulletColor as string) || '#3b82f6'}
+                  onChange={(e) => updateProps({ bulletColor: e.target.value })}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {block.type === 'Code' && (
+        <>
+          <div>
+            <Label>Code</Label>
+            <textarea
+              value={(props.code as string) || ''}
+              onChange={(e) => updateProps({ code: e.target.value })}
+              rows={6}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background resize-none font-mono text-sm"
+            />
+          </div>
+          <div>
+            <Label>Language</Label>
+            <select
+              value={(props.language as string) || 'javascript'}
+              onChange={(e) => updateProps({ language: e.target.value })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
+            >
+              <option value="javascript">JavaScript</option>
+              <option value="typescript">TypeScript</option>
+              <option value="python">Python</option>
+              <option value="html">HTML</option>
+              <option value="css">CSS</option>
+              <option value="json">JSON</option>
+              <option value="bash">Bash</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <input
+              type="checkbox"
+              id="showLineNumbers"
+              checked={(props.showLineNumbers as boolean) ?? true}
+              onChange={(e) => updateProps({ showLineNumbers: e.target.checked })}
+            />
+            <Label htmlFor="showLineNumbers">Show line numbers</Label>
+          </div>
+          <div>
+            <Label>Background Color</Label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="color"
+                value={(props.backgroundColor as string) || '#1e293b'}
+                onChange={(e) => updateProps({ backgroundColor: e.target.value })}
+                className="w-10 h-10 rounded border cursor-pointer"
+              />
+              <Input
+                value={(props.backgroundColor as string) || '#1e293b'}
+                onChange={(e) => updateProps({ backgroundColor: e.target.value })}
+                className="flex-1"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Text Color</Label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="color"
+                value={(props.textColor as string) || '#e2e8f0'}
+                onChange={(e) => updateProps({ textColor: e.target.value })}
+                className="w-10 h-10 rounded border cursor-pointer"
+              />
+              <Input
+                value={(props.textColor as string) || '#e2e8f0'}
+                onChange={(e) => updateProps({ textColor: e.target.value })}
+                className="flex-1"
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {block.type === 'Badge' && (
+        <>
+          <div>
+            <Label>Badge Text</Label>
+            <Input
+              value={(props.text as string) || ''}
+              onChange={(e) => updateProps({ text: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label>Size</Label>
+            <select
+              value={(props.size as string) || 'medium'}
+              onChange={(e) => updateProps({ size: e.target.value })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
+            >
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+          <div>
+            <Label>Alignment</Label>
+            <select
+              value={(props.alignment as string) || 'left'}
+              onChange={(e) => updateProps({ alignment: e.target.value })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          <div>
+            <Label>Background Color</Label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="color"
+                value={(props.backgroundColor as string) || '#3b82f6'}
+                onChange={(e) => updateProps({ backgroundColor: e.target.value })}
+                className="w-10 h-10 rounded border cursor-pointer"
+              />
+              <Input
+                value={(props.backgroundColor as string) || '#3b82f6'}
+                onChange={(e) => updateProps({ backgroundColor: e.target.value })}
+                className="flex-1"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Text Color</Label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="color"
+                value={(props.textColor as string) || '#ffffff'}
+                onChange={(e) => updateProps({ textColor: e.target.value })}
+                className="w-10 h-10 rounded border cursor-pointer"
+              />
+              <Input
+                value={(props.textColor as string) || '#ffffff'}
+                onChange={(e) => updateProps({ textColor: e.target.value })}
+                className="flex-1"
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {block.type === 'Icon' && (
+        <>
+          <div>
+            <Label>Icon</Label>
+            <select
+              value={(props.icon as string) || 'star'}
+              onChange={(e) => updateProps({ icon: e.target.value })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
+            >
+              <option value="star">Star</option>
+              <option value="heart">Heart</option>
+              <option value="check">Check</option>
+              <option value="mail">Mail</option>
+              <option value="phone">Phone</option>
+              <option value="location">Location</option>
+              <option value="gift">Gift</option>
+              <option value="trophy">Trophy</option>
+            </select>
+          </div>
+          <div>
+            <Label>Size (px)</Label>
+            <Input
+              type="number"
+              value={(props.size as number) || 48}
+              onChange={(e) => updateProps({ size: parseInt(e.target.value) || 48 })}
+              className="mt-1"
+              min={16}
+              max={128}
+            />
+          </div>
+          <div>
+            <Label>Color</Label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="color"
+                value={(props.color as string) || '#3b82f6'}
+                onChange={(e) => updateProps({ color: e.target.value })}
+                className="w-10 h-10 rounded border cursor-pointer"
+              />
+              <Input
+                value={(props.color as string) || '#3b82f6'}
+                onChange={(e) => updateProps({ color: e.target.value })}
+                className="flex-1"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Alignment</Label>
+            <select
+              value={(props.alignment as string) || 'center'}
+              onChange={(e) => updateProps({ alignment: e.target.value })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          <div>
+            <Label>Label (optional)</Label>
+            <Input
+              value={(props.label as string) || ''}
+              onChange={(e) => updateProps({ label: e.target.value })}
+              className="mt-1"
+              placeholder="Text below icon"
+            />
+          </div>
+        </>
+      )}
+
+      {block.type === 'SocialIcons' && (
+        <>
+          <div>
+            <Label>Alignment</Label>
+            <select
+              value={(props.alignment as string) || 'center'}
+              onChange={(e) => updateProps({ alignment: e.target.value })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          <div>
+            <Label>Icon Size (px)</Label>
+            <Input
+              type="number"
+              value={(props.iconSize as number) || 32}
+              onChange={(e) => updateProps({ iconSize: parseInt(e.target.value) || 32 })}
+              className="mt-1"
+              min={20}
+              max={64}
+            />
+          </div>
+          <div>
+            <Label>Icon Style</Label>
+            <select
+              value={(props.iconStyle as string) || 'filled'}
+              onChange={(e) => updateProps({ iconStyle: e.target.value })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
+            >
+              <option value="filled">Filled</option>
+              <option value="outline">Outline</option>
+            </select>
+          </div>
+          <SocialIconsEditor
+            icons={(props.icons as Array<{ platform: string; url: string }>) || []}
+            onChange={(icons) => updateProps({ icons })}
+          />
+        </>
+      )}
+
+      {block.type === 'Table' && (
+        <TableEditor
+          headers={(props.headers as string[]) || []}
+          rows={(props.rows as string[][]) || []}
+          onChangeHeaders={(headers) => updateProps({ headers })}
+          onChangeRows={(rows) => updateProps({ rows })}
+          headerBackground={(props.headerBackground as string) || '#f1f5f9'}
+          borderColor={(props.borderColor as string) || '#e2e8f0'}
+          stripedRows={(props.stripedRows as boolean) ?? true}
+          onChangeHeaderBackground={(color) => updateProps({ headerBackground: color })}
+          onChangeBorderColor={(color) => updateProps({ borderColor: color })}
+          onChangeStripedRows={(striped) => updateProps({ stripedRows: striped })}
+        />
+      )}
+
+      <div className="pt-4 border-t">
+        <Label className="text-muted-foreground font-medium">Block Styles</Label>
+
+        <div className="space-y-3 mt-3">
+          <div>
+            <Label className="text-xs">Background Color</Label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="color"
+                value={(style.backgroundColor as string) || '#ffffff'}
+                onChange={(e) => updateStyle({ backgroundColor: e.target.value })}
+                className="w-10 h-10 rounded border cursor-pointer"
+              />
+              <Input
+                value={(style.backgroundColor as string) || ''}
+                onChange={(e) => updateStyle({ backgroundColor: e.target.value })}
+                placeholder="transparent"
+                className="flex-1"
+              />
+              {typeof style.backgroundColor === 'string' && style.backgroundColor && (
+                <button
+                  onClick={() => updateStyle({ backgroundColor: undefined })}
+                  className="px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Text Color</Label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="color"
+                value={(style.textColor as string) || '#000000'}
+                onChange={(e) => updateStyle({ textColor: e.target.value })}
+                className="w-10 h-10 rounded border cursor-pointer"
+              />
+              <Input
+                value={(style.textColor as string) || ''}
+                onChange={(e) => updateStyle({ textColor: e.target.value })}
+                placeholder="inherit"
+                className="flex-1"
+              />
+              {typeof style.textColor === 'string' && style.textColor && (
+                <button
+                  onClick={() => updateStyle({ textColor: undefined })}
+                  className="px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Font Size</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                type="number"
+                value={(style.fontSize as number) || ''}
+                onChange={(e) => updateStyle({ fontSize: parseInt(e.target.value) || undefined })}
+                placeholder="inherit"
+                className="flex-1"
+                min={8}
+                max={72}
+              />
+              <span className="text-sm text-muted-foreground self-center">px</span>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">Text Align</Label>
+            <select
+              value={(style.textAlign as string) || ''}
+              onChange={(e) => updateStyle({ textAlign: e.target.value || undefined })}
+              className="w-full mt-1 border rounded-md px-3 py-2 bg-background text-sm"
+            >
+              <option value="">Inherit</option>
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {block.type !== 'Spacer' && (
         <div className="pt-4 border-t">
           <Label className="text-muted-foreground">Padding</Label>
@@ -475,6 +961,227 @@ function BlockConfigPanel({ blockId, block }: BlockConfigPanelProps) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+interface SocialIconsEditorProps {
+  icons: Array<{ platform: string; url: string }>;
+  onChange: (icons: Array<{ platform: string; url: string }>) => void;
+}
+
+function SocialIconsEditor({ icons, onChange }: SocialIconsEditorProps) {
+  const platforms = ['twitter', 'facebook', 'instagram', 'linkedin', 'youtube'];
+
+  const addIcon = () => {
+    onChange([...icons, { platform: 'twitter', url: '' }]);
+  };
+
+  const removeIcon = (index: number) => {
+    onChange(icons.filter((_, i) => i !== index));
+  };
+
+  const updateIcon = (index: number, field: 'platform' | 'url', value: string) => {
+    const newIcons = [...icons];
+    newIcons[index] = { ...newIcons[index], [field]: value };
+    onChange(newIcons);
+  };
+
+  return (
+    <div className="space-y-3 mt-3">
+      <Label>Social Icons</Label>
+      {icons.map((icon, index) => (
+        <div key={index} className="flex gap-2 items-center">
+          <select
+            value={icon.platform}
+            onChange={(e) => updateIcon(index, 'platform', e.target.value)}
+            className="border rounded-md px-2 py-1 bg-background text-sm"
+          >
+            {platforms.map((p) => (
+              <option key={p} value={p}>
+                {p.charAt(0).toUpperCase() + p.slice(1)}
+              </option>
+            ))}
+          </select>
+          <Input
+            value={icon.url}
+            onChange={(e) => updateIcon(index, 'url', e.target.value)}
+            placeholder="URL"
+            className="flex-1"
+          />
+          <button
+            onClick={() => removeIcon(index)}
+            className="text-red-500 hover:text-red-700 px-2"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button onClick={addIcon} className="text-sm text-primary hover:underline">
+        + Add Icon
+      </button>
+    </div>
+  );
+}
+
+interface TableEditorProps {
+  headers: string[];
+  rows: string[][];
+  onChangeHeaders: (headers: string[]) => void;
+  onChangeRows: (rows: string[][]) => void;
+  headerBackground: string;
+  borderColor: string;
+  stripedRows: boolean;
+  onChangeHeaderBackground: (color: string) => void;
+  onChangeBorderColor: (color: string) => void;
+  onChangeStripedRows: (striped: boolean) => void;
+}
+
+function TableEditor({
+  headers,
+  rows,
+  onChangeHeaders,
+  onChangeRows,
+  headerBackground,
+  borderColor,
+  stripedRows,
+  onChangeHeaderBackground,
+  onChangeBorderColor,
+  onChangeStripedRows,
+}: TableEditorProps) {
+  const addColumn = () => {
+    onChangeHeaders([...headers, `Column ${headers.length + 1}`]);
+    onChangeRows(rows.map((row) => [...row, '']));
+  };
+
+  const removeColumn = (index: number) => {
+    if (headers.length <= 1) return;
+    onChangeHeaders(headers.filter((_, i) => i !== index));
+    onChangeRows(rows.map((row) => row.filter((_, i) => i !== index)));
+  };
+
+  const addRow = () => {
+    onChangeRows([...rows, headers.map(() => '')]);
+  };
+
+  const removeRow = (index: number) => {
+    onChangeRows(rows.filter((_, i) => i !== index));
+  };
+
+  const updateHeader = (index: number, value: string) => {
+    const newHeaders = [...headers];
+    newHeaders[index] = value;
+    onChangeHeaders(newHeaders);
+  };
+
+  const updateCell = (rowIndex: number, colIndex: number, value: string) => {
+    const newRows = rows.map((row, ri) =>
+      ri === rowIndex ? row.map((cell, ci) => (ci === colIndex ? value : cell)) : row
+    );
+    onChangeRows(newRows);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label>Table Data</Label>
+        <div className="flex gap-2">
+          <button onClick={addColumn} className="text-xs text-primary hover:underline">
+            + Column
+          </button>
+          <button onClick={addRow} className="text-xs text-primary hover:underline">
+            + Row
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2 text-sm">
+        <div className="flex gap-1">
+          {headers.map((header, i) => (
+            <div key={i} className="flex-1 flex gap-1">
+              <Input
+                value={header}
+                onChange={(e) => updateHeader(i, e.target.value)}
+                className="text-xs"
+                placeholder={`Header ${i + 1}`}
+              />
+              {headers.length > 1 && (
+                <button
+                  onClick={() => removeColumn(i)}
+                  className="text-red-500 hover:text-red-700 text-xs px-1"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        {rows.map((row, ri) => (
+          <div key={ri} className="flex gap-1 items-center">
+            {row.map((cell, ci) => (
+              <Input
+                key={ci}
+                value={cell}
+                onChange={(e) => updateCell(ri, ci, e.target.value)}
+                className="flex-1 text-xs"
+                placeholder={`Row ${ri + 1}`}
+              />
+            ))}
+            <button
+              onClick={() => removeRow(ri)}
+              className="text-red-500 hover:text-red-700 text-xs px-1"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <Label className="text-xs">Header Background</Label>
+        <div className="flex gap-2 mt-1">
+          <input
+            type="color"
+            value={headerBackground}
+            onChange={(e) => onChangeHeaderBackground(e.target.value)}
+            className="w-8 h-8 rounded border cursor-pointer"
+          />
+          <Input
+            value={headerBackground}
+            onChange={(e) => onChangeHeaderBackground(e.target.value)}
+            className="flex-1"
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-xs">Border Color</Label>
+        <div className="flex gap-2 mt-1">
+          <input
+            type="color"
+            value={borderColor}
+            onChange={(e) => onChangeBorderColor(e.target.value)}
+            className="w-8 h-8 rounded border cursor-pointer"
+          />
+          <Input
+            value={borderColor}
+            onChange={(e) => onChangeBorderColor(e.target.value)}
+            className="flex-1"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="stripedRows"
+          checked={stripedRows}
+          onChange={(e) => onChangeStripedRows(e.target.checked)}
+        />
+        <Label htmlFor="stripedRows" className="text-xs">
+          Striped rows
+        </Label>
+      </div>
     </div>
   );
 }

@@ -1,19 +1,44 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Copy, Trash2 } from 'lucide-react';
+import { Plus, Copy, Trash2, MoreVertical, Edit, RefreshCw, X } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
-import type { ApiKey, ApiKeyWithFullKey } from '@canary/shared';
+import {
+  API_KEY_SCOPES,
+  type ApiKey,
+  type ApiKeyWithFullKey,
+  type ApiKeyScope,
+} from '@canary/shared';
+
+const SCOPE_LABELS: Record<ApiKeyScope, string> = {
+  send: 'Send Emails',
+  'templates:read': 'Read Templates',
+  'templates:write': 'Write Templates',
+  'logs:read': 'Read Logs',
+};
 
 export function ApiKeysList() {
   const queryClient = useQueryClient();
   const [newKeyName, setNewKeyName] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<ApiKey | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    name: string;
+    scopes: ApiKeyScope[];
+    rateLimit: number;
+    isActive: boolean;
+  }>({ name: '', scopes: ['send'], rateLimit: 100, isActive: true });
 
   const { data, isLoading } = useQuery({
     queryKey: ['api-keys'],
@@ -48,6 +73,37 @@ export function ApiKeysList() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { name?: string; scopes?: ApiKeyScope[]; rateLimit?: number; isActive?: boolean };
+    }) => api.put(`/api/api-keys/${id}`, data),
+    onSuccess: () => {
+      toast({ title: 'API key updated' });
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      setEditingKey(null);
+    },
+    onError: () => {
+      toast({ title: 'Failed to update API key', variant: 'destructive' });
+    },
+  });
+
+  const regenerateMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.post<{ success: boolean; data: ApiKeyWithFullKey }>(`/api/api-keys/${id}/regenerate`),
+    onSuccess: (response) => {
+      toast({ title: 'API key regenerated' });
+      setNewKey(response.data?.key || null);
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+    },
+    onError: () => {
+      toast({ title: 'Failed to regenerate API key', variant: 'destructive' });
+    },
+  });
+
   const handleCreate = () => {
     if (!newKeyName.trim()) {
       toast({ title: 'Please enter a key name', variant: 'destructive' });
@@ -65,6 +121,46 @@ export function ApiKeysList() {
     if (confirm('Are you sure you want to delete this API key?')) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handleEdit = (key: ApiKey) => {
+    setEditingKey(key);
+    setEditFormData({
+      name: key.name,
+      scopes: key.scopes as ApiKeyScope[],
+      rateLimit: key.rateLimit,
+      isActive: key.isActive,
+    });
+  };
+
+  const handleUpdate = () => {
+    if (!editingKey || !editFormData.name) {
+      toast({ title: 'Please fill in key name', variant: 'destructive' });
+      return;
+    }
+    updateMutation.mutate({
+      id: editingKey.id,
+      data: editFormData,
+    });
+  };
+
+  const handleRegenerate = (id: string) => {
+    if (
+      confirm(
+        'Are you sure you want to regenerate this API key? The old key will stop working immediately.'
+      )
+    ) {
+      regenerateMutation.mutate(id);
+    }
+  };
+
+  const toggleScope = (scope: ApiKeyScope) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      scopes: prev.scopes.includes(scope)
+        ? prev.scopes.filter((s) => s !== scope)
+        : [...prev.scopes, scope],
+    }));
   };
 
   return (
@@ -146,7 +242,16 @@ export function ApiKeysList() {
               <CardContent className="flex items-center justify-between py-4">
                 <div className="space-y-1">
                   <p className="font-medium">{key.name}</p>
-                  <code className="text-sm text-muted-foreground">{key.keyPrefix}...</code>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm text-muted-foreground">{key.keyPrefix}...</code>
+                    <div className="flex gap-1">
+                      {key.scopes.map((scope) => (
+                        <span key={scope} className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                          {scope}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <span
@@ -159,18 +264,141 @@ export function ApiKeysList() {
                       Last used: {new Date(key.lastUsedAt).toLocaleDateString()}
                     </span>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(key.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(key)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleRegenerate(key.id)}>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Regenerate
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(key.id)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {editingKey && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setEditingKey(null)} />
+          <div className="relative bg-background rounded-lg shadow-lg w-full max-w-lg max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">Edit API Key</h2>
+              <button onClick={() => setEditingKey(null)} className="p-1 hover:bg-muted rounded">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <Label htmlFor="edit-key-name">Key Name</Label>
+                <Input
+                  id="edit-key-name"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  placeholder="Production, Staging, etc."
+                />
+              </div>
+
+              <div>
+                <Label>Scopes</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Select what this API key can access
+                </p>
+                <div className="space-y-2">
+                  {API_KEY_SCOPES.map((scope) => (
+                    <button
+                      key={scope}
+                      type="button"
+                      onClick={() => toggleScope(scope)}
+                      className={`w-full flex items-center justify-between p-3 border rounded-lg transition-colors ${
+                        editFormData.scopes.includes(scope)
+                          ? 'border-primary bg-primary/5'
+                          : 'hover:border-muted-foreground/50'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{SCOPE_LABELS[scope]}</span>
+                      <div
+                        className={`w-5 h-5 rounded border flex items-center justify-center ${
+                          editFormData.scopes.includes(scope)
+                            ? 'bg-primary border-primary text-primary-foreground'
+                            : 'border-muted-foreground/50'
+                        }`}
+                      >
+                        {editFormData.scopes.includes(scope) && (
+                          <svg
+                            className="h-3 w-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-rate-limit">Rate Limit (requests/minute)</Label>
+                <Input
+                  id="edit-rate-limit"
+                  type="number"
+                  min={1}
+                  max={10000}
+                  value={editFormData.rateLimit}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, rateLimit: parseInt(e.target.value) || 100 })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="edit-is-active"
+                  checked={editFormData.isActive}
+                  onChange={(e) => setEditFormData({ ...editFormData, isActive: e.target.checked })}
+                  className="rounded"
+                />
+                <Label htmlFor="edit-is-active" className="font-normal">
+                  Key is active
+                </Label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button variant="outline" onClick={() => setEditingKey(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdate} disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

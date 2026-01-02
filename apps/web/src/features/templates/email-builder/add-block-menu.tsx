@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { BLOCK_TEMPLATES, BlockTemplate } from './block-templates';
+import {
+  BLOCK_TEMPLATES,
+  PRESET_TEMPLATES,
+  BlockTemplate,
+  PresetTemplate,
+} from './block-templates';
 import { useEditorStore } from './editor-context';
 
 interface AddBlockMenuProps {
@@ -19,6 +24,18 @@ export function AddBlockMenu({ parentId, index, placeholder }: AddBlockMenuProps
     setIsOpen(false);
   };
 
+  const handleAddPreset = (preset: PresetTemplate) => {
+    const blocks = preset.createBlocks();
+    let insertIndex = index;
+    for (const block of blocks) {
+      addBlock(block, parentId, insertIndex);
+      if (insertIndex !== undefined) {
+        insertIndex++;
+      }
+    }
+    setIsOpen(false);
+  };
+
   if (placeholder) {
     return (
       <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
@@ -34,7 +51,13 @@ export function AddBlockMenu({ parentId, index, placeholder }: AddBlockMenuProps
             <Plus className="h-4 w-4" />
             Add Block
           </button>
-          {isOpen && <BlockPicker onSelect={handleAddBlock} onClose={() => setIsOpen(false)} />}
+          {isOpen && (
+            <BlockPicker
+              onSelect={handleAddBlock}
+              onSelectPreset={handleAddPreset}
+              onClose={() => setIsOpen(false)}
+            />
+          )}
         </div>
       </div>
     );
@@ -56,7 +79,11 @@ export function AddBlockMenu({ parentId, index, placeholder }: AddBlockMenuProps
       </div>
       {isOpen && (
         <div className="absolute top-6 z-20">
-          <BlockPicker onSelect={handleAddBlock} onClose={() => setIsOpen(false)} />
+          <BlockPicker
+            onSelect={handleAddBlock}
+            onSelectPreset={handleAddPreset}
+            onClose={() => setIsOpen(false)}
+          />
         </div>
       )}
     </div>
@@ -85,6 +112,18 @@ export function AddBlockMenuColumn({
     setIsOpen(false);
   };
 
+  const handleAddPreset = (preset: PresetTemplate) => {
+    const blocks = preset.createBlocks();
+    let insertIndex = index;
+    for (const block of blocks) {
+      addBlockToColumn(block, parentId, columnIndex, insertIndex);
+      if (insertIndex !== undefined) {
+        insertIndex++;
+      }
+    }
+    setIsOpen(false);
+  };
+
   if (placeholder) {
     return (
       <div className="flex flex-col items-center justify-center py-8 px-2">
@@ -100,7 +139,11 @@ export function AddBlockMenuColumn({
         </button>
         {isOpen && (
           <div className="absolute top-full mt-2 z-20">
-            <BlockPicker onSelect={handleAddBlock} onClose={() => setIsOpen(false)} />
+            <BlockPicker
+              onSelect={handleAddBlock}
+              onSelectPreset={handleAddPreset}
+              onClose={() => setIsOpen(false)}
+            />
           </div>
         )}
       </div>
@@ -123,7 +166,11 @@ export function AddBlockMenuColumn({
       </div>
       {isOpen && (
         <div className="absolute top-5 z-20">
-          <BlockPicker onSelect={handleAddBlock} onClose={() => setIsOpen(false)} />
+          <BlockPicker
+            onSelect={handleAddBlock}
+            onSelectPreset={handleAddPreset}
+            onClose={() => setIsOpen(false)}
+          />
         </div>
       )}
     </div>
@@ -132,25 +179,68 @@ export function AddBlockMenuColumn({
 
 interface BlockPickerProps {
   onSelect: (template: BlockTemplate) => void;
+  onSelectPreset?: (preset: PresetTemplate) => void;
   onClose: () => void;
 }
 
-function BlockPicker({ onSelect, onClose }: BlockPickerProps) {
+function BlockPicker({ onSelect, onSelectPreset, onClose }: BlockPickerProps) {
+  const [tab, setTab] = useState<'blocks' | 'presets'>('blocks');
+
   return (
     <>
       <div className="fixed inset-0 z-10" onClick={onClose} />
-      <div className="relative z-20 bg-popover border rounded-lg shadow-lg p-2 min-w-[280px]">
-        <div className="grid grid-cols-3 gap-1">
-          {BLOCK_TEMPLATES.map((template) => (
-            <button
-              key={template.type}
-              onClick={() => onSelect(template)}
-              className="flex flex-col items-center gap-1 p-3 rounded-md hover:bg-muted transition-colors text-center"
-            >
-              <span className="text-lg font-mono">{template.icon}</span>
-              <span className="text-xs text-muted-foreground">{template.label}</span>
-            </button>
-          ))}
+      <div className="relative z-20 bg-popover border rounded-lg shadow-lg min-w-[320px]">
+        <div className="flex border-b">
+          <button
+            onClick={() => setTab('blocks')}
+            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+              tab === 'blocks'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Blocks
+          </button>
+          <button
+            onClick={() => setTab('presets')}
+            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+              tab === 'presets'
+                ? 'text-primary border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Presets
+          </button>
+        </div>
+        <div className="p-2">
+          {tab === 'blocks' ? (
+            <div className="grid grid-cols-3 gap-1">
+              {BLOCK_TEMPLATES.map((template) => (
+                <button
+                  key={template.type}
+                  onClick={() => onSelect(template)}
+                  className="flex flex-col items-center gap-1 p-3 rounded-md hover:bg-muted transition-colors text-center"
+                >
+                  <span className="text-lg font-mono">{template.icon}</span>
+                  <span className="text-xs text-muted-foreground">{template.label}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {PRESET_TEMPLATES.map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => onSelectPreset?.(preset)}
+                  className="flex flex-col items-start gap-1 p-3 rounded-md hover:bg-muted transition-colors text-left border"
+                >
+                  <span className="text-lg">{preset.icon}</span>
+                  <span className="text-sm font-medium">{preset.label}</span>
+                  <span className="text-xs text-muted-foreground">{preset.description}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

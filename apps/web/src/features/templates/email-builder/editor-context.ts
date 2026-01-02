@@ -61,7 +61,7 @@ const DEFAULT_DOCUMENT: EditorDocument = {
       backdropColor: '#F5F5F5',
       canvasColor: '#FFFFFF',
       textColor: '#242424',
-      fontFamily: 'MODERN_SANS',
+      fontFamily: 'Inter',
       childrenIds: [],
     },
   },
@@ -75,19 +75,33 @@ function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
+function getColumns(block: EditorBlock): Array<{ childrenIds: string[] }> | null {
+  const props = block.data.props as Record<string, unknown> | undefined;
+  return (props?.columns as Array<{ childrenIds: string[] }>) || null;
+}
+
+function getChildrenIds(block: EditorBlock): string[] | null {
+  const props = block.data.props as Record<string, unknown> | undefined;
+  if (props?.childrenIds) {
+    return props.childrenIds as string[];
+  }
+  if (block.data.childrenIds) {
+    return block.data.childrenIds as string[];
+  }
+  return null;
+}
+
 function findParentOfBlock(
   doc: EditorDocument,
   blockId: string
 ): { parentId: string; columnIndex?: number } | null {
   for (const [id, block] of Object.entries(doc)) {
-    if (block.data.childrenIds) {
-      const childrenIds = block.data.childrenIds as string[];
-      if (childrenIds.includes(blockId)) {
-        return { parentId: id };
-      }
+    const childrenIds = getChildrenIds(block);
+    if (childrenIds?.includes(blockId)) {
+      return { parentId: id };
     }
-    if (block.data.columns) {
-      const columns = block.data.columns as Array<{ childrenIds: string[] }>;
+    const columns = getColumns(block);
+    if (columns) {
       for (let i = 0; i < columns.length; i++) {
         if (columns[i].childrenIds.includes(blockId)) {
           return { parentId: id, columnIndex: i };
@@ -105,15 +119,15 @@ function collectChildBlocks(doc: EditorDocument, blockId: string): EditorDocumen
 
   result[blockId] = deepClone(block);
 
-  if (block.data.childrenIds) {
-    const childrenIds = block.data.childrenIds as string[];
+  const childrenIds = getChildrenIds(block);
+  if (childrenIds) {
     for (const childId of childrenIds) {
       Object.assign(result, collectChildBlocks(doc, childId));
     }
   }
 
-  if (block.data.columns) {
-    const columns = block.data.columns as Array<{ childrenIds: string[] }>;
+  const columns = getColumns(block);
+  if (columns) {
     for (const column of columns) {
       for (const childId of column.childrenIds) {
         Object.assign(result, collectChildBlocks(doc, childId));
@@ -137,20 +151,17 @@ function remapBlockIds(blocks: EditorDocument): {
 
   for (const [oldId, block] of Object.entries(blocks)) {
     const newBlock = deepClone(block);
+    const props = newBlock.data.props as Record<string, unknown> | undefined;
 
-    if (newBlock.data.childrenIds) {
-      newBlock.data.childrenIds = (newBlock.data.childrenIds as string[]).map(
-        (id) => idMap[id] || id
-      );
+    if (props?.childrenIds) {
+      props.childrenIds = (props.childrenIds as string[]).map((id) => idMap[id] || id);
     }
 
-    if (newBlock.data.columns) {
-      newBlock.data.columns = (newBlock.data.columns as Array<{ childrenIds: string[] }>).map(
-        (col) => ({
-          ...col,
-          childrenIds: col.childrenIds.map((id) => idMap[id] || id),
-        })
-      );
+    if (props?.columns) {
+      props.columns = (props.columns as Array<{ childrenIds: string[] }>).map((col) => ({
+        ...col,
+        childrenIds: col.childrenIds.map((id) => idMap[id] || id),
+      }));
     }
 
     newBlocks[idMap[oldId]] = newBlock;
@@ -273,9 +284,10 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
     const state = get();
     const blockId = generateBlockId();
     const parent = state.document[parentId];
-    if (!parent || !parent.data.columns) return blockId;
+    const props = parent?.data?.props as Record<string, unknown> | undefined;
+    if (!parent || !props?.columns) return blockId;
 
-    const columns = deepClone(parent.data.columns as Array<{ childrenIds: string[] }>);
+    const columns = deepClone(props.columns as Array<{ childrenIds: string[] }>);
     if (!columns[columnIndex]) return blockId;
 
     if (index !== undefined) {
@@ -289,7 +301,7 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
       [blockId]: block,
       [parentId]: {
         ...parent,
-        data: { ...parent.data, columns },
+        data: { ...parent.data, props: { ...props, columns } },
       },
     };
 
@@ -318,13 +330,13 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
       const block = newDoc[id];
       if (!block) return;
 
-      if (block.data.childrenIds) {
-        const childrenIds = block.data.childrenIds as string[];
+      const childrenIds = getChildrenIds(block);
+      if (childrenIds) {
         childrenIds.forEach(deleteRecursive);
       }
 
-      if (block.data.columns) {
-        const columns = block.data.columns as Array<{ childrenIds: string[] }>;
+      const columns = getColumns(block);
+      if (columns) {
         columns.forEach((col) => col.childrenIds.forEach(deleteRecursive));
       }
 
@@ -335,17 +347,19 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
 
     Object.keys(newDoc).forEach((key) => {
       const block = newDoc[key];
+      const props = block?.data?.props as Record<string, unknown> | undefined;
+      if (props?.childrenIds) {
+        props.childrenIds = (props.childrenIds as string[]).filter((id) => id !== blockId);
+      }
+      if (props?.columns) {
+        props.columns = (props.columns as Array<{ childrenIds: string[] }>).map((col) => ({
+          ...col,
+          childrenIds: col.childrenIds.filter((id) => id !== blockId),
+        }));
+      }
       if (block?.data?.childrenIds) {
         block.data.childrenIds = (block.data.childrenIds as string[]).filter(
           (id) => id !== blockId
-        );
-      }
-      if (block?.data?.columns) {
-        block.data.columns = (block.data.columns as Array<{ childrenIds: string[] }>).map(
-          (col) => ({
-            ...col,
-            childrenIds: col.childrenIds.filter((id) => id !== blockId),
-          })
         );
       }
     });
@@ -438,11 +452,14 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
     const parentInfo = findParentOfBlock(newDoc, blockId);
     if (!parentInfo) return;
 
-    if (parentInfo.columnIndex !== undefined) {
-      const columns = fromParent.data.columns as Array<{ childrenIds: string[] }>;
+    const fromProps = fromParent.data.props as Record<string, unknown> | undefined;
+    if (parentInfo.columnIndex !== undefined && fromProps?.columns) {
+      const columns = fromProps.columns as Array<{ childrenIds: string[] }>;
       columns[parentInfo.columnIndex].childrenIds = columns[
         parentInfo.columnIndex
       ].childrenIds.filter((id) => id !== blockId);
+    } else if (fromProps?.childrenIds) {
+      fromProps.childrenIds = (fromProps.childrenIds as string[]).filter((id) => id !== blockId);
     } else if (fromParent.data.childrenIds) {
       fromParent.data.childrenIds = (fromParent.data.childrenIds as string[]).filter(
         (id) => id !== blockId
@@ -452,9 +469,13 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
     const toParent = newDoc[toParentId];
     if (!toParent) return;
 
-    if (toColumnIndex !== undefined && toParent.data.columns) {
-      const columns = toParent.data.columns as Array<{ childrenIds: string[] }>;
+    const toProps = toParent.data.props as Record<string, unknown> | undefined;
+    if (toColumnIndex !== undefined && toProps?.columns) {
+      const columns = toProps.columns as Array<{ childrenIds: string[] }>;
       columns[toColumnIndex].childrenIds.splice(toIndex, 0, blockId);
+    } else if (toProps?.childrenIds !== undefined) {
+      const childrenIds = toProps.childrenIds as string[];
+      childrenIds.splice(toIndex, 0, blockId);
     } else if (toParent.data.childrenIds !== undefined) {
       const childrenIds = toParent.data.childrenIds as string[];
       childrenIds.splice(toIndex, 0, blockId);
@@ -486,17 +507,25 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
 
     if (parentInfo.columnIndex !== undefined) {
       const parent = newDoc[parentInfo.parentId];
-      const columns = deepClone(parent.data.columns as Array<{ childrenIds: string[] }>);
+      const props = parent.data.props as Record<string, unknown>;
+      const columns = deepClone(props.columns as Array<{ childrenIds: string[] }>);
       const colChildrenIds = columns[parentInfo.columnIndex].childrenIds;
       const index = colChildrenIds.indexOf(blockId);
       colChildrenIds.splice(index + 1, 0, newBlockId);
-      newDoc[parentInfo.parentId] = { ...parent, data: { ...parent.data, columns } };
+      newDoc[parentInfo.parentId] = {
+        ...parent,
+        data: { ...parent.data, props: { ...props, columns } },
+      };
     } else {
       const parent = newDoc[parentInfo.parentId];
-      const childrenIds = [...(parent.data.childrenIds as string[])];
+      const props = parent.data.props as Record<string, unknown>;
+      const childrenIds = [...(props.childrenIds as string[])];
       const index = childrenIds.indexOf(blockId);
       childrenIds.splice(index + 1, 0, newBlockId);
-      newDoc[parentInfo.parentId] = { ...parent, data: { ...parent.data, childrenIds } };
+      newDoc[parentInfo.parentId] = {
+        ...parent,
+        data: { ...parent.data, props: { ...props, childrenIds } },
+      };
     }
 
     const newHistory = state.history.slice(0, state.historyIndex + 1);

@@ -1,12 +1,16 @@
 import { eq, and, ilike, desc, count } from 'drizzle-orm';
-import { db, templates, templateVersions } from '../../db';
+import { db, templates, templateVersions, emailLogs } from '../../db';
 import { generateTemplateSlug } from '../../lib/slug';
 import { extractVariables, renderTemplate } from '../../lib/handlebars';
-import { NotFoundError, ConflictError } from '../../lib/errors';
+import { NotFoundError, ConflictError, AppError } from '../../lib/errors';
+import { getDefaultAdapter } from '../adapters/adapters.service';
+import { emailQueue } from '../../jobs/queues';
+import { ERROR_CODES } from '@canary/shared';
 import type {
   CreateTemplateInput,
   UpdateTemplateInput,
   ListTemplatesInput,
+  TestSendInput,
 } from './templates.schema';
 
 export async function listTemplates(teamId: string, params: ListTemplatesInput) {
@@ -305,4 +309,59 @@ function stripHtml(html: string): string {
     .replace(/<[^>]*>/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+export async function testSendEmail(teamId: string, templateId: string, input: TestSendInput) {
+  const template = await getTemplate(teamId, templateId);
+
+  const adapter = await getDefaultAdapter(teamId);
+  if (!adapter) {
+    throw new AppError(
+      ERROR_CODES.ADAPTER_ERROR,
+      'No email adapter configured. Please add an adapter first.',
+      400
+    );
+  }
+
+  const fromAddress = adapter.defaultFrom;
+  if (!fromAddress) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'No from address configured on adapter', 400);
+  }
+
+  const variables = input.variables || {};
+  const subject = `[TEST] ${renderTemplate(template.subject, variables)}`;
+
+  const [log] = await db
+    .insert(emailLogs)
+    .values({
+      teamId,
+      templateId: template.id,
+      templateVersionId: template.currentVersionId,
+      adapterId: adapter.id,
+      toAddresses: [input.to],
+      fromAddress,
+      subject,
+      variables,
+      status: 'queued',
+    })
+    .returning();
+
+  const job = await emailQueue.add('send', {
+    emailLogId: log.id,
+    teamId,
+    templateId: template.id,
+    to: [input.to],
+    from: fromAddress,
+    subject,
+    variables,
+  });
+
+  await db.update(emailLogs).set({ jobId: job.id }).where(eq(emailLogs.id, log.id));
+
+  return {
+    id: log.id,
+    jobId: job.id,
+    status: 'queued' as const,
+    to: input.to,
+  };
 }

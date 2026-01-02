@@ -40,6 +40,7 @@ export const TEAM_PERMISSIONS = {
   'webhooks:update': ['owner', 'admin'],
   'webhooks:delete': ['owner', 'admin'],
   'logs:view': ['owner', 'admin', 'member'],
+  'logs:resend': ['owner', 'admin'],
 } as const;
 
 export type Permission = keyof typeof TEAM_PERMISSIONS;

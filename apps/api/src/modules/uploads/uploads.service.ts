@@ -27,11 +27,24 @@ function getS3Client(): S3Client {
   return s3Client;
 }
 
+function toPublicEndpoint(endpoint: string): string {
+  try {
+    const url = new URL(endpoint);
+    if (url.hostname === 'minio') {
+      url.hostname = 'localhost';
+    }
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return endpoint;
+  }
+}
+
 function getPublicUrl(key: string): string {
   if (env.S3_PUBLIC_URL) {
     return `${env.S3_PUBLIC_URL}/${key}`;
   }
-  return `${env.S3_ENDPOINT}/${env.S3_BUCKET}/${key}`;
+  const publicEndpoint = toPublicEndpoint(env.S3_ENDPOINT || '');
+  return `${publicEndpoint}/${env.S3_BUCKET}/${key}`;
 }
 
 export async function uploadImage(

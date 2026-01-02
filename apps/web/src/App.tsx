@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './features/auth/auth-context';
 import { Toaster } from './components/ui/toaster';
 import { AppShell } from './components/layout/app-shell';
 import { LoginPage } from './features/auth/login';
+import { AcceptInvite } from './features/auth/accept-invite';
+import { Dashboard } from './features/dashboard/dashboard';
 import { TemplatesList } from './features/templates/templates-list';
 import { TemplateDesigner } from './features/templates/template-designer';
 import { AdaptersList } from './features/adapters/adapters-list';
@@ -33,13 +35,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/invite" element={<AcceptInvite />} />
       <Route
         path="/*"
         element={
           <ProtectedRoute>
             <AppShell>
               <Routes>
-                <Route path="/" element={<TemplatesList />} />
+                <Route path="/" element={<Dashboard />} />
                 <Route path="/templates" element={<TemplatesList />} />
                 <Route path="/templates/new" element={<TemplateDesigner />} />
                 <Route path="/templates/:id" element={<TemplateDesigner />} />

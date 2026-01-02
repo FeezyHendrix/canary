@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, MoreVertical, Copy, Trash2, Edit } from 'lucide-react';
+import { Plus, Search, MoreVertical, Copy, Trash2, Edit, Mail, FileText } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,20 +13,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
+import { cn } from '@/lib/utils';
 import type { TemplateListItem, PaginatedResponse } from '@canary/shared';
+
+type TemplateType = 'email' | 'pdf';
 
 export function TemplatesList() {
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<TemplateType>('email');
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['templates', search],
+    queryKey: ['templates', search, activeTab],
     queryFn: () =>
-      api.get<{ success: boolean; data: PaginatedResponse<TemplateListItem> }>('/api/templates', {
+      api.get<{
+        success: boolean;
+        data: PaginatedResponse<TemplateListItem & { generatePdf?: boolean }>;
+      }>('/api/templates', {
         params: { search: search || undefined, pageSize: 50 },
       }),
   });
 
-  const templates = data?.data?.items || [];
+  const allTemplates = data?.data?.items || [];
+  const templates = allTemplates.filter((t) =>
+    activeTab === 'pdf' ? t.generatePdf : !t.generatePdf
+  );
 
   const handleDuplicate = async (id: string) => {
     try {
@@ -49,22 +59,50 @@ export function TemplatesList() {
     }
   };
 
+  const isEmail = activeTab === 'email';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Templates</h1>
-          <p className="text-muted-foreground">Create and manage your email templates</p>
+          <p className="text-muted-foreground">Create and manage your templates</p>
         </div>
         <Button asChild>
-          <Link to="/templates/new">
+          <Link to={isEmail ? '/templates/new' : '/templates/new?type=pdf'}>
             <Plus className="mr-2 h-4 w-4" />
-            New Template
+            New {isEmail ? 'Email' : 'PDF'} Template
           </Link>
         </Button>
       </div>
 
       <div className="flex items-center gap-4">
+        <div className="flex gap-1 p-1 bg-muted rounded-lg">
+          <button
+            onClick={() => setActiveTab('email')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors',
+              activeTab === 'email'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Mail className="h-4 w-4" />
+            Email Templates
+          </button>
+          <button
+            onClick={() => setActiveTab('pdf')}
+            className={cn(
+              'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors',
+              activeTab === 'pdf'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <FileText className="h-4 w-4" />
+            PDF Templates
+          </button>
+        </div>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -83,9 +121,13 @@ export function TemplatesList() {
       ) : templates.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground mb-4">No templates found</p>
+            <p className="text-muted-foreground mb-4">
+              No {isEmail ? 'email' : 'PDF'} templates found
+            </p>
             <Button asChild>
-              <Link to="/templates/new">Create your first template</Link>
+              <Link to={isEmail ? '/templates/new' : '/templates/new?type=pdf'}>
+                Create your first {isEmail ? 'email' : 'PDF'} template
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -132,7 +174,9 @@ export function TemplatesList() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-2">{template.description || template.subject}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {template.description || template.subject}
+                </p>
                 {template.variables && template.variables.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1">
                     {template.variables.slice(0, 3).map((v) => (
@@ -141,7 +185,9 @@ export function TemplatesList() {
                       </span>
                     ))}
                     {template.variables.length > 3 && (
-                      <span className="text-xs text-muted-foreground">+{template.variables.length - 3} more</span>
+                      <span className="text-xs text-muted-foreground">
+                        +{template.variables.length - 3} more
+                      </span>
                     )}
                   </div>
                 )}

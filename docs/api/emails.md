@@ -89,7 +89,27 @@ Generate PDFs from templates and attach them to the email:
 | `filename`   | string | Yes      | Output filename (e.g., `invoice.pdf`)                |
 | `variables`  | object | No       | Variables for this PDF (defaults to email variables) |
 
-### Example Request
+---
+
+## Code Examples
+
+Select your programming language:
+
+<div class="code-tabs">
+<div class="code-tabs-nav">
+<button class="active" data-lang="curl">cURL</button>
+<button data-lang="javascript">JavaScript</button>
+<button data-lang="python">Python</button>
+<button data-lang="php">PHP</button>
+<button data-lang="ruby">Ruby</button>
+<button data-lang="go">Go</button>
+<button data-lang="java">Java</button>
+<button data-lang="csharp">C#</button>
+<button data-lang="kotlin">Kotlin</button>
+<button data-lang="swift">Swift</button>
+</div>
+
+<div class="code-tab-content active" data-lang="curl" markdown="1">
 
 ```bash
 curl -X POST https://your-domain.com/api/v1/send \
@@ -99,155 +119,75 @@ curl -X POST https://your-domain.com/api/v1/send \
     "templateId": "welcome-email",
     "to": "user@example.com",
     "variables": {
-      "name": "John Doe",
+      "name": "John",
       "company": "Acme Inc"
-    },
-    "tags": ["onboarding", "welcome"],
-    "metadata": {
-      "userId": "usr_123",
-      "campaign": "signup-flow"
     }
   }'
 ```
 
-### Example with Multiple Recipients
+</div>
 
-```bash
-curl -X POST https://your-domain.com/api/v1/send \
-  -H "X-API-Key: cnry_your_api_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "templateId": "newsletter",
-    "to": ["user1@example.com", "user2@example.com"],
-    "variables": {
-      "month": "January"
-    }
-  }'
-```
+<div class="code-tab-content" data-lang="javascript" markdown="1">
 
-### Example with PDF Attachment
-
-```bash
-curl -X POST https://your-domain.com/api/v1/send \
-  -H "X-API-Key: cnry_your_api_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "templateId": "invoice-email",
-    "to": "customer@example.com",
-    "variables": {
-      "customerName": "Jane Doe",
-      "invoiceNumber": "INV-2024-001",
-      "amount": "$150.00"
-    },
-    "pdfAttachments": [
-      {
-        "templateId": "invoice-pdf",
-        "filename": "invoice-INV-2024-001.pdf",
-        "variables": {
-          "invoiceNumber": "INV-2024-001",
-          "amount": "$150.00",
-          "dueDate": "2024-02-15"
-        }
-      }
-    ]
-  }'
-```
-
----
-
-## Code Examples
-
-Complete examples for sending emails using the Canary API in various programming languages.
-
-### JavaScript (Node.js)
-
-Using fetch (built-in from Node.js 18+):
+**Using fetch (Node.js 18+):**
 
 ```javascript
 const API_URL = 'https://your-domain.com/api/v1/send';
 const API_KEY = 'cnry_your_api_key';
 
 async function sendEmail() {
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'X-API-Key': API_KEY,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        templateId: 'welcome-email',
-        to: 'user@example.com',
-        variables: {
-          name: 'John',
-          company: 'Acme Inc',
-        },
-      }),
-    });
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'X-API-Key': API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      templateId: 'welcome-email',
+      to: 'user@example.com',
+      variables: { name: 'John', company: 'Acme Inc' },
+    }),
+  });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`API error: ${error.error?.message || response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.log('Email queued:', result.data.id);
-    return result;
-  } catch (error) {
-    console.error('Failed to send email:', error.message);
-    throw error;
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || response.statusText);
   }
-}
 
-sendEmail();
+  const result = await response.json();
+  console.log('Email queued:', result.data.id);
+  return result;
+}
 ```
 
-Using axios:
+**Using axios:**
 
 ```javascript
 const axios = require('axios');
 
-const API_URL = 'https://your-domain.com/api/v1/send';
-const API_KEY = 'cnry_your_api_key';
-
 async function sendEmail() {
-  try {
-    const response = await axios.post(
-      API_URL,
-      {
-        templateId: 'welcome-email',
-        to: 'user@example.com',
-        variables: {
-          name: 'John',
-          company: 'Acme Inc',
-        },
+  const response = await axios.post(
+    'https://your-domain.com/api/v1/send',
+    {
+      templateId: 'welcome-email',
+      to: 'user@example.com',
+      variables: { name: 'John', company: 'Acme Inc' },
+    },
+    {
+      headers: {
+        'X-API-Key': 'cnry_your_api_key',
+        'Content-Type': 'application/json',
       },
-      {
-        headers: {
-          'X-API-Key': API_KEY,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-
-    console.log('Email queued:', response.data.data.id);
-    return response.data;
-  } catch (error) {
-    if (error.response) {
-      console.error('API error:', error.response.data.error?.message);
-    } else {
-      console.error('Request failed:', error.message);
     }
-    throw error;
-  }
+  );
+  console.log('Email queued:', response.data.data.id);
+  return response.data;
 }
-
-sendEmail();
 ```
 
-### Python
+</div>
 
-Using requests:
+<div class="code-tab-content" data-lang="python" markdown="1">
 
 ```python
 import requests
@@ -255,46 +195,31 @@ import requests
 API_URL = "https://your-domain.com/api/v1/send"
 API_KEY = "cnry_your_api_key"
 
-
 def send_email():
-    headers = {
-        "X-API-Key": API_KEY,
-        "Content-Type": "application/json",
-    }
-
-    payload = {
-        "templateId": "welcome-email",
-        "to": "user@example.com",
-        "variables": {
-            "name": "John",
-            "company": "Acme Inc",
+    response = requests.post(
+        API_URL,
+        json={
+            "templateId": "welcome-email",
+            "to": "user@example.com",
+            "variables": {"name": "John", "company": "Acme Inc"},
         },
-    }
-
-    try:
-        response = requests.post(API_URL, json=payload, headers=headers)
-        response.raise_for_status()
-
-        result = response.json()
-        print(f"Email queued: {result['data']['id']}")
-        return result
-
-    except requests.exceptions.HTTPError as e:
-        error_data = e.response.json()
-        print(f"API error: {error_data.get('error', {}).get('message', str(e))}")
-        raise
-    except requests.exceptions.RequestException as e:
-        print(f"Request failed: {e}")
-        raise
-
+        headers={
+            "X-API-Key": API_KEY,
+            "Content-Type": "application/json",
+        },
+    )
+    response.raise_for_status()
+    result = response.json()
+    print(f"Email queued: {result['data']['id']}")
+    return result
 
 if __name__ == "__main__":
     send_email()
 ```
 
-### PHP
+</div>
 
-Using cURL:
+<div class="code-tab-content" data-lang="php" markdown="1">
 
 ```php
 <?php
@@ -302,61 +227,39 @@ Using cURL:
 $apiUrl = 'https://your-domain.com/api/v1/send';
 $apiKey = 'cnry_your_api_key';
 
-function sendEmail(): array {
-    global $apiUrl, $apiKey;
+$payload = [
+    'templateId' => 'welcome-email',
+    'to' => 'user@example.com',
+    'variables' => ['name' => 'John', 'company' => 'Acme Inc'],
+];
 
-    $payload = [
-        'templateId' => 'welcome-email',
-        'to' => 'user@example.com',
-        'variables' => [
-            'name' => 'John',
-            'company' => 'Acme Inc',
-        ],
-    ];
+$ch = curl_init($apiUrl);
+curl_setopt_array($ch, [
+    CURLOPT_POST => true,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => [
+        'X-API-Key: ' . $apiKey,
+        'Content-Type: application/json',
+    ],
+    CURLOPT_POSTFIELDS => json_encode($payload),
+]);
 
-    $ch = curl_init($apiUrl);
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
 
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => [
-            'X-API-Key: ' . $apiKey,
-            'Content-Type: application/json',
-        ],
-        CURLOPT_POSTFIELDS => json_encode($payload),
-    ]);
+$result = json_decode($response, true);
 
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-
-    curl_close($ch);
-
-    if ($curlError) {
-        throw new Exception("cURL error: $curlError");
-    }
-
-    $result = json_decode($response, true);
-
-    if ($httpCode >= 400) {
-        $errorMessage = $result['error']['message'] ?? 'Unknown error';
-        throw new Exception("API error ($httpCode): $errorMessage");
-    }
-
-    echo "Email queued: " . $result['data']['id'] . "\n";
-    return $result;
+if ($httpCode >= 400) {
+    throw new Exception("API error: " . $result['error']['message']);
 }
 
-try {
-    sendEmail();
-} catch (Exception $e) {
-    echo "Failed to send email: " . $e->getMessage() . "\n";
-}
+echo "Email queued: " . $result['data']['id'] . "\n";
 ```
 
-### Ruby
+</div>
 
-Using Net::HTTP:
+<div class="code-tab-content" data-lang="ruby" markdown="1">
 
 ```ruby
 require 'net/http'
@@ -366,278 +269,152 @@ require 'json'
 API_URL = 'https://your-domain.com/api/v1/send'
 API_KEY = 'cnry_your_api_key'
 
-def send_email
-  uri = URI.parse(API_URL)
+uri = URI.parse(API_URL)
+http = Net::HTTP.new(uri.host, uri.port)
+http.use_ssl = true
 
-  http = Net::HTTP.new(uri.host, uri.port)
-  http.use_ssl = uri.scheme == 'https'
+request = Net::HTTP::Post.new(uri.request_uri)
+request['X-API-Key'] = API_KEY
+request['Content-Type'] = 'application/json'
+request.body = {
+  templateId: 'welcome-email',
+  to: 'user@example.com',
+  variables: { name: 'John', company: 'Acme Inc' }
+}.to_json
 
-  request = Net::HTTP::Post.new(uri.request_uri)
-  request['X-API-Key'] = API_KEY
-  request['Content-Type'] = 'application/json'
+response = http.request(request)
+result = JSON.parse(response.body)
 
-  request.body = {
-    templateId: 'welcome-email',
-    to: 'user@example.com',
-    variables: {
-      name: 'John',
-      company: 'Acme Inc'
-    }
-  }.to_json
+raise "API error: #{result['error']['message']}" unless response.is_a?(Net::HTTPSuccess)
 
-  response = http.request(request)
-  result = JSON.parse(response.body)
-
-  unless response.is_a?(Net::HTTPSuccess)
-    error_message = result.dig('error', 'message') || 'Unknown error'
-    raise "API error (#{response.code}): #{error_message}"
-  end
-
-  puts "Email queued: #{result['data']['id']}"
-  result
-rescue StandardError => e
-  puts "Failed to send email: #{e.message}"
-  raise
-end
-
-send_email
+puts "Email queued: #{result['data']['id']}"
 ```
 
-### Go
+</div>
 
-Using net/http:
+<div class="code-tab-content" data-lang="go" markdown="1">
 
 ```go
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "io"
+    "net/http"
 )
 
-const (
-	apiURL = "https://your-domain.com/api/v1/send"
-	apiKey = "cnry_your_api_key"
-)
+func sendEmail() error {
+    payload := map[string]interface{}{
+        "templateId": "welcome-email",
+        "to":         "user@example.com",
+        "variables":  map[string]string{"name": "John", "company": "Acme Inc"},
+    }
 
-type SendEmailRequest struct {
-	TemplateID string            `json:"templateId"`
-	To         string            `json:"to"`
-	Variables  map[string]string `json:"variables"`
-}
+    jsonData, _ := json.Marshal(payload)
+    req, _ := http.NewRequest("POST", "https://your-domain.com/api/v1/send", bytes.NewBuffer(jsonData))
+    req.Header.Set("X-API-Key", "cnry_your_api_key")
+    req.Header.Set("Content-Type", "application/json")
 
-type SendEmailResponse struct {
-	Success bool `json:"success"`
-	Data    struct {
-		ID     string `json:"id"`
-		JobID  string `json:"jobId"`
-		Status string `json:"status"`
-	} `json:"data"`
-	Error *struct {
-		Code    string `json:"code"`
-		Message string `json:"message"`
-	} `json:"error,omitempty"`
-}
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
 
-func sendEmail() (*SendEmailResponse, error) {
-	payload := SendEmailRequest{
-		TemplateID: "welcome-email",
-		To:         "user@example.com",
-		Variables: map[string]string{
-			"name":    "John",
-			"company": "Acme Inc",
-		},
-	}
+    body, _ := io.ReadAll(resp.Body)
+    var result map[string]interface{}
+    json.Unmarshal(body, &result)
 
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
+    if resp.StatusCode >= 400 {
+        return fmt.Errorf("API error: %v", result["error"])
+    }
 
-	req, err := http.NewRequest("POST", apiURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("X-API-Key", apiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var result SendEmailResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse response: %w", err)
-	}
-
-	if resp.StatusCode >= 400 {
-		errMsg := "unknown error"
-		if result.Error != nil {
-			errMsg = result.Error.Message
-		}
-		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, errMsg)
-	}
-
-	fmt.Printf("Email queued: %s\n", result.Data.ID)
-	return &result, nil
-}
-
-func main() {
-	if _, err := sendEmail(); err != nil {
-		fmt.Printf("Failed to send email: %v\n", err)
-	}
+    data := result["data"].(map[string]interface{})
+    fmt.Printf("Email queued: %s\n", data["id"])
+    return nil
 }
 ```
 
-### Java
+</div>
 
-Using HttpClient (Java 11+):
+<div class="code-tab-content" data-lang="java" markdown="1">
 
 ```java
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 
-public class CanaryEmailClient {
-    private static final String API_URL = "https://your-domain.com/api/v1/send";
-    private static final String API_KEY = "cnry_your_api_key";
-
-    public static void main(String[] args) {
-        try {
-            sendEmail();
-        } catch (Exception e) {
-            System.err.println("Failed to send email: " + e.getMessage());
-        }
-    }
-
-    public static String sendEmail() throws Exception {
-        String jsonPayload = """
+public class CanaryClient {
+    public static void main(String[] args) throws Exception {
+        String json = """
             {
                 "templateId": "welcome-email",
                 "to": "user@example.com",
-                "variables": {
-                    "name": "John",
-                    "company": "Acme Inc"
-                }
+                "variables": {"name": "John", "company": "Acme Inc"}
             }
             """;
 
-        HttpClient client = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(10))
-            .build();
-
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(API_URL))
-            .header("X-API-Key", API_KEY)
+            .uri(URI.create("https://your-domain.com/api/v1/send"))
+            .header("X-API-Key", "cnry_your_api_key")
             .header("Content-Type", "application/json")
-            .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+            .POST(HttpRequest.BodyPublishers.ofString(json))
             .build();
 
-        HttpResponse<String> response = client.send(
-            request,
-            HttpResponse.BodyHandlers.ofString()
-        );
+        HttpResponse<String> response = HttpClient.newHttpClient()
+            .send(request, HttpResponse.BodyHandlers.ofString());
 
         if (response.statusCode() >= 400) {
-            throw new RuntimeException(
-                "API error (" + response.statusCode() + "): " + response.body()
-            );
+            throw new RuntimeException("API error: " + response.body());
         }
 
-        System.out.println("Email sent successfully: " + response.body());
-        return response.body();
+        System.out.println("Email sent: " + response.body());
     }
 }
 ```
 
-### C#
+</div>
 
-Using HttpClient (.NET):
+<div class="code-tab-content" data-lang="csharp" markdown="1">
 
 ```csharp
-using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
-class CanaryEmailClient
-{
-    private const string ApiUrl = "https://your-domain.com/api/v1/send";
-    private const string ApiKey = "cnry_your_api_key";
+var client = new HttpClient();
+client.DefaultRequestHeaders.Add("X-API-Key", "cnry_your_api_key");
 
-    static async Task Main(string[] args)
-    {
-        try
-        {
-            var result = await SendEmailAsync();
-            Console.WriteLine($"Email queued: {result}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to send email: {ex.Message}");
-        }
-    }
+var payload = new {
+    templateId = "welcome-email",
+    to = "user@example.com",
+    variables = new { name = "John", company = "Acme Inc" }
+};
 
-    static async Task<string> SendEmailAsync()
-    {
-        using var client = new HttpClient();
+var content = new StringContent(
+    JsonSerializer.Serialize(payload),
+    Encoding.UTF8,
+    "application/json"
+);
 
-        client.DefaultRequestHeaders.Add("X-API-Key", ApiKey);
+var response = await client.PostAsync("https://your-domain.com/api/v1/send", content);
+var body = await response.Content.ReadAsStringAsync();
 
-        var payload = new
-        {
-            templateId = "welcome-email",
-            to = "user@example.com",
-            variables = new
-            {
-                name = "John",
-                company = "Acme Inc"
-            }
-        };
-
-        var json = JsonSerializer.Serialize(payload);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        var response = await client.PostAsync(ApiUrl, content);
-        var responseBody = await response.Content.ReadAsStringAsync();
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException(
-                $"API error ({(int)response.StatusCode}): {responseBody}"
-            );
-        }
-
-        using var doc = JsonDocument.Parse(responseBody);
-        var emailId = doc.RootElement
-            .GetProperty("data")
-            .GetProperty("id")
-            .GetString();
-
-        Console.WriteLine($"Email queued: {emailId}");
-        return responseBody;
-    }
+if (!response.IsSuccessStatusCode) {
+    throw new HttpRequestException($"API error: {body}");
 }
+
+using var doc = JsonDocument.Parse(body);
+var emailId = doc.RootElement.GetProperty("data").GetProperty("id").GetString();
+Console.WriteLine($"Email queued: {emailId}");
 ```
 
-### Kotlin
+</div>
 
-Using OkHttp:
+<div class="code-tab-content" data-lang="kotlin" markdown="1">
 
 ```kotlin
 import okhttp3.MediaType.Companion.toMediaType
@@ -645,14 +422,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.io.IOException
-
-const val API_URL = "https://your-domain.com/api/v1/send"
-const val API_KEY = "cnry_your_api_key"
 
 fun sendEmail(): JSONObject {
     val client = OkHttpClient()
-
     val payload = JSONObject().apply {
         put("templateId", "welcome-email")
         put("to", "user@example.com")
@@ -662,132 +434,60 @@ fun sendEmail(): JSONObject {
         })
     }
 
-    val mediaType = "application/json; charset=utf-8".toMediaType()
-    val requestBody = payload.toString().toRequestBody(mediaType)
-
     val request = Request.Builder()
-        .url(API_URL)
-        .addHeader("X-API-Key", API_KEY)
-        .addHeader("Content-Type", "application/json")
-        .post(requestBody)
+        .url("https://your-domain.com/api/v1/send")
+        .addHeader("X-API-Key", "cnry_your_api_key")
+        .post(payload.toString().toRequestBody("application/json".toMediaType()))
         .build()
 
     client.newCall(request).execute().use { response ->
-        val responseBody = response.body?.string()
-            ?: throw IOException("Empty response body")
-
-        if (!response.isSuccessful) {
-            val error = JSONObject(responseBody)
-                .optJSONObject("error")
-                ?.optString("message") ?: "Unknown error"
-            throw IOException("API error (${response.code}): $error")
-        }
-
-        val result = JSONObject(responseBody)
-        val emailId = result.getJSONObject("data").getString("id")
-        println("Email queued: $emailId")
-
+        val result = JSONObject(response.body?.string() ?: "{}")
+        if (!response.isSuccessful) throw Exception("API error: ${result.optJSONObject("error")}")
+        println("Email queued: ${result.getJSONObject("data").getString("id")}")
         return result
-    }
-}
-
-fun main() {
-    try {
-        sendEmail()
-    } catch (e: Exception) {
-        println("Failed to send email: ${e.message}")
     }
 }
 ```
 
-### Swift
+</div>
 
-Using URLSession:
+<div class="code-tab-content" data-lang="swift" markdown="1">
 
 ```swift
 import Foundation
 
-let apiUrl = "https://your-domain.com/api/v1/send"
-let apiKey = "cnry_your_api_key"
-
-struct SendEmailRequest: Codable {
+struct EmailRequest: Codable {
     let templateId: String
     let to: String
     let variables: [String: String]
 }
 
-struct SendEmailResponse: Codable {
-    let success: Bool
-    let data: EmailData?
-    let error: APIError?
-
-    struct EmailData: Codable {
-        let id: String
-        let jobId: String
-        let status: String
-    }
-
-    struct APIError: Codable {
-        let code: String
-        let message: String
-    }
-}
-
-func sendEmail() async throws -> SendEmailResponse {
-    guard let url = URL(string: apiUrl) else {
-        throw URLError(.badURL)
-    }
-
-    var request = URLRequest(url: url)
+func sendEmail() async throws {
+    var request = URLRequest(url: URL(string: "https://your-domain.com/api/v1/send")!)
     request.httpMethod = "POST"
-    request.setValue(apiKey, forHTTPHeaderField: "X-API-Key")
+    request.setValue("cnry_your_api_key", forHTTPHeaderField: "X-API-Key")
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-    let payload = SendEmailRequest(
+    request.httpBody = try JSONEncoder().encode(EmailRequest(
         templateId: "welcome-email",
         to: "user@example.com",
-        variables: [
-            "name": "John",
-            "company": "Acme Inc"
-        ]
-    )
-
-    request.httpBody = try JSONEncoder().encode(payload)
+        variables: ["name": "John", "company": "Acme Inc"]
+    ))
 
     let (data, response) = try await URLSession.shared.data(for: request)
+    let httpResponse = response as! HTTPURLResponse
 
-    guard let httpResponse = response as? HTTPURLResponse else {
+    if httpResponse.statusCode >= 400 {
         throw URLError(.badServerResponse)
     }
 
-    let result = try JSONDecoder().decode(SendEmailResponse.self, from: data)
-
-    if httpResponse.statusCode >= 400 {
-        let errorMessage = result.error?.message ?? "Unknown error"
-        throw NSError(
-            domain: "CanaryAPI",
-            code: httpResponse.statusCode,
-            userInfo: [NSLocalizedDescriptionKey: "API error: \(errorMessage)"]
-        )
-    }
-
-    if let emailId = result.data?.id {
-        print("Email queued: \(emailId)")
-    }
-
-    return result
-}
-
-// Usage
-Task {
-    do {
-        let result = try await sendEmail()
-        print("Success: \(result.success)")
-    } catch {
-        print("Failed to send email: \(error.localizedDescription)")
-    }
+    let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+    let emailData = json["data"] as! [String: Any]
+    print("Email queued: \(emailData["id"]!)")
 }
 ```
+
+</div>
+</div>
 
 ---
 
