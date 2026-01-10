@@ -3,6 +3,8 @@ import { nanoid } from 'nanoid';
 import { db, users, teams, teamMembers, sessions } from '../../db';
 import { generateTeamSlug } from '../../lib/slug';
 import type { SessionUser, TeamMembership } from '@canary/shared';
+import { hashPassword, verifyPassword, createVerificationToken } from './password.service';
+import { ConflictError, UnauthorizedError, NotFoundError } from '../../lib/errors';
 
 interface OAuthProfile {
   provider: 'google' | 'github';
@@ -124,6 +126,8 @@ export async function getSessionUser(sessionId: string): Promise<SessionUser | n
     name: user.name,
     avatarUrl: user.avatarUrl,
     activeTeamId: session.activeTeamId,
+    emailVerified: user.emailVerified ?? false,
+    hasPassword: !!user.passwordHash,
   };
 }
 
@@ -156,4 +160,100 @@ export async function switchActiveTeam(sessionId: string, teamId: string) {
   await db.update(sessions).set({ activeTeamId: teamId }).where(eq(sessions.id, sessionId));
 
   return true;
+}
+
+// Password authentication functions
+
+interface RegisterInput {
+  email: string;
+  password: string;
+  name?: string;
+}
+
+export async function registerWithPassword(input: RegisterInput) {
+  const existingUser = await db.query.users.findFirst({
+    where: eq(users.email, input.email),
+  });
+
+  if (existingUser) {
+    throw new ConflictError('An account with this email already exists');
+  }
+
+  const passwordHash = await hashPassword(input.password);
+
+  const [newUser] = await db
+    .insert(users)
+    .values({
+      email: input.email,
+      name: input.name || null,
+      passwordHash,
+      emailVerified: false,
+    })
+    .returning();
+
+  const teamName = input.name ? `${input.name}'s Team` : 'My Team';
+  const [team] = await db
+    .insert(teams)
+    .values({
+      name: teamName,
+      slug: generateTeamSlug(teamName),
+    })
+    .returning();
+
+  await db.insert(teamMembers).values({
+    teamId: team.id,
+    userId: newUser.id,
+    role: 'owner',
+    joinedAt: new Date(),
+  });
+
+  const verificationToken = await createVerificationToken(newUser.id);
+
+  return { user: newUser, verificationToken };
+}
+
+export async function loginWithPassword(email: string, password: string) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, email),
+  });
+
+  if (!user || !user.passwordHash) {
+    throw new UnauthorizedError('Invalid email or password');
+  }
+
+  const validPassword = await verifyPassword(user.passwordHash, password);
+
+  if (!validPassword) {
+    throw new UnauthorizedError('Invalid email or password');
+  }
+
+  if (!user.emailVerified) {
+    throw new UnauthorizedError('Please verify your email before logging in');
+  }
+
+  return user;
+}
+
+export async function setPasswordForOAuthUser(userId: string, password: string) {
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (!user) {
+    throw new NotFoundError('User');
+  }
+
+  if (user.passwordHash) {
+    throw new ConflictError('User already has a password set');
+  }
+
+  const passwordHash = await hashPassword(password);
+
+  await db
+    .update(users)
+    .set({
+      passwordHash,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
 }

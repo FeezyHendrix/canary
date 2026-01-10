@@ -239,7 +239,7 @@ interface InviteResponse {
 function InviteModal({ teamId, onClose }: InviteModalProps) {
   const queryClient = useQueryClient();
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'admin' | 'member'>('member');
+  const [role, setRole] = useState<'admin' | 'member' | 'viewer'>('member');
   const [inviteResult, setInviteResult] = useState<InviteResponse | null>(null);
 
   const inviteMutation = useMutation({
@@ -331,10 +331,11 @@ function InviteModal({ teamId, onClose }: InviteModalProps) {
                 <select
                   id="role"
                   value={role}
-                  onChange={(e) => setRole(e.target.value as 'admin' | 'member')}
+                  onChange={(e) => setRole(e.target.value as 'admin' | 'member' | 'viewer')}
                   className="w-full mt-1 border rounded-md px-3 py-2 bg-background"
                 >
-                  <option value="member">Member - Can view and send emails</option>
+                  <option value="viewer">Viewer - Read-only access to templates and logs</option>
+                  <option value="member">Member - Can view and edit templates</option>
                   <option value="admin">Admin - Can manage team settings</option>
                 </select>
               </div>

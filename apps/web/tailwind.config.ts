@@ -6,7 +6,8 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     fontFamily: {
-      sans: ['Inter', 'system-ui', 'sans-serif'],
+      sans: ['Geist Sans', 'system-ui', 'sans-serif'],
+      mono: ['Geist Mono', 'monospace'],
     },
     extend: {
       colors: {

@@ -1,4 +1,5 @@
 import { eq, and, ilike, desc, count } from 'drizzle-orm';
+import { renderToStaticMarkup, TReaderDocument } from '@usewaypoint/email-builder';
 import { db, templates, templateVersions, emailLogs } from '../../db';
 import { generateTemplateSlug } from '../../lib/slug';
 import { extractVariables, renderTemplate } from '../../lib/handlebars';
@@ -301,7 +302,12 @@ function extractVariablesFromDesign(designJson: Record<string, unknown>): string
 }
 
 function compileDesignToHtml(designJson: Record<string, unknown>): string {
-  return JSON.stringify(designJson);
+  try {
+    return renderToStaticMarkup(designJson as TReaderDocument, { rootBlockId: 'root' });
+  } catch (error) {
+    console.error('[templates] Failed to compile design to HTML:', error);
+    return '';
+  }
 }
 
 function stripHtml(html: string): string {

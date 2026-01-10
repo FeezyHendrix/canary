@@ -12,7 +12,7 @@ services:
       - /app/apps/web/node_modules
       - /app/packages/shared/node_modules
     environment:
-      - VITE_API_URL=http://localhost:3001
+      - API_PROXY_TARGET=http://api:3001
     depends_on:
       - api
     restart: unless-stopped

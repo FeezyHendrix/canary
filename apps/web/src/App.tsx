@@ -3,6 +3,10 @@ import { AuthProvider, useAuth } from './features/auth/auth-context';
 import { Toaster } from './components/ui/toaster';
 import { AppShell } from './components/layout/app-shell';
 import { LoginPage } from './features/auth/login';
+import { RegisterPage } from './features/auth/register';
+import { ForgotPasswordPage } from './features/auth/forgot-password';
+import { ResetPasswordPage } from './features/auth/reset-password';
+import { VerifyEmailPage } from './features/auth/verify-email';
 import { AcceptInvite } from './features/auth/accept-invite';
 import { Dashboard } from './features/dashboard/dashboard';
 import { TemplatesList } from './features/templates/templates-list';
@@ -35,6 +39,10 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/invite" element={<AcceptInvite />} />
       <Route
         path="/*"

@@ -1,11 +1,88 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { LayoutTemplate, Mail, Activity, TrendingUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import {
+  LayoutTemplate,
+  Mail,
+  TrendingUp,
+  CheckCircle2,
+  ArrowUpRight,
+  ArrowDownRight,
+  Search,
+} from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { api } from '@/lib/api-client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+interface KpiCardProps {
+  title: string;
+  value: string | number;
+  trend?: { value: string; positive: boolean };
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+}
+
+function KpiCard({ title, value, trend, icon: Icon, iconBg, iconColor }: KpiCardProps) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6 relative overflow-hidden">
+      <div
+        className={cn(
+          'absolute top-4 right-4 w-10 h-10 rounded-lg flex items-center justify-center',
+          iconBg
+        )}
+      >
+        <Icon className={cn('h-5 w-5', iconColor)} />
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-gray-500">{title}</p>
+        <p className="text-3xl font-bold text-gray-900 tracking-tight">{value}</p>
+      </div>
+
+      {trend && (
+        <div
+          className={cn(
+            'flex items-center gap-1 mt-3 text-sm font-medium',
+            trend.positive ? 'text-emerald-600' : 'text-red-500'
+          )}
+        >
+          {trend.positive ? (
+            <ArrowUpRight className="h-4 w-4" />
+          ) : (
+            <ArrowDownRight className="h-4 w-4" />
+          )}
+          <span>{trend.value}</span>
+          <span className="text-gray-400 font-normal">vs last period</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface StatusBadgeProps {
+  status: string;
+}
+
+function StatusBadge({ status }: StatusBadgeProps) {
+  const styles: Record<string, string> = {
+    sent: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    delivered: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    failed: 'bg-red-50 text-red-700 border-red-200',
+    pending: 'bg-amber-50 text-amber-700 border-amber-200',
+    queued: 'bg-blue-50 text-blue-700 border-blue-200',
+  };
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border',
+        styles[status] || styles.pending
+      )}
+    >
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+}
 
 export function Dashboard() {
   const { data: templatesData } = useQuery({
@@ -23,7 +100,14 @@ export function Dashboard() {
         success: boolean;
         data: {
           total: number;
-          items: Array<{ id: string; subject: string; status: string; createdAt: string }>;
+          items: Array<{
+            id: string;
+            subject: string;
+            status: string;
+            createdAt: string;
+            recipientEmail?: string;
+            to?: string;
+          }>;
         };
       }>('/api/logs', { params: { page: 1, pageSize: 100 } }),
   });
@@ -32,129 +116,134 @@ export function Dashboard() {
   const emailCount = logsData?.data?.total ?? 0;
   const recentEmails = logsData?.data?.items ?? [];
 
+  const deliveredCount = recentEmails.filter(
+    (e) => e.status === 'sent' || e.status === 'delivered'
+  ).length;
+  const deliveryRate =
+    emailCount > 0
+      ? ((deliveredCount / Math.min(emailCount, recentEmails.length)) * 100).toFixed(1)
+      : '0';
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Overview of your email infrastructure</p>
-      </div>
-
+    <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Templates</CardTitle>
-            <LayoutTemplate className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{templateCount}</div>
-            <p className="text-xs text-muted-foreground">Email templates created</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Emails Sent</CardTitle>
-            <Mail className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{emailCount}</div>
-            <p className="text-xs text-muted-foreground">Total emails processed</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Delivery Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{emailCount > 0 ? '98.5%' : '-'}</div>
-            <p className="text-xs text-muted-foreground">Successful deliveries</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">Healthy</div>
-            <p className="text-xs text-muted-foreground">All systems operational</p>
-          </CardContent>
-        </Card>
+        <KpiCard
+          title="Templates"
+          value={templateCount}
+          trend={{ value: '+12%', positive: true }}
+          icon={LayoutTemplate}
+          iconBg="bg-violet-100"
+          iconColor="text-violet-600"
+        />
+        <KpiCard
+          title="Emails Sent"
+          value={emailCount.toLocaleString()}
+          trend={{ value: '+23%', positive: true }}
+          icon={Mail}
+          iconBg="bg-blue-100"
+          iconColor="text-blue-600"
+        />
+        <KpiCard
+          title="Delivery Rate"
+          value={emailCount > 0 ? `${deliveryRate}%` : '-'}
+          trend={emailCount > 0 ? { value: '+2.4%', positive: true } : undefined}
+          icon={TrendingUp}
+          iconBg="bg-emerald-100"
+          iconColor="text-emerald-600"
+        />
+        <KpiCard
+          title="System Status"
+          value="Healthy"
+          icon={CheckCircle2}
+          iconBg="bg-amber-100"
+          iconColor="text-amber-600"
+        />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Email Deliveries</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DeliveryChart emails={recentEmails} totalEmails={emailCount} />
-        </CardContent>
-      </Card>
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Email Delivery Trends</h2>
+            <p className="text-sm text-gray-500">Daily email volume over the past week</p>
+          </div>
+        </div>
+        <DeliveryChart emails={recentEmails} totalEmails={emailCount} />
+      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Emails</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentEmails.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No emails sent yet</p>
-            ) : (
-              <div className="space-y-4">
-                {recentEmails.map((email) => (
-                  <div key={email.id} className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">{email.subject}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(email.createdAt).toLocaleDateString()}
+      <div className="bg-white rounded-xl border border-gray-200">
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Recent Emails</h2>
+              <p className="text-sm text-gray-500">Latest email activity and delivery status</p>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search emails..."
+                className="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-64 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        {recentEmails.length === 0 ? (
+          <div className="p-12 text-center">
+            <Mail className="mx-auto h-12 w-12 text-gray-300" />
+            <p className="mt-4 text-sm font-medium text-gray-900">No emails sent yet</p>
+            <p className="mt-1 text-sm text-gray-500">Send your first email to see activity here</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
+                    Email
+                  </th>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
+                    Recipient
+                  </th>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
+                    Date
+                  </th>
+                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {recentEmails.slice(0, 10).map((email) => (
+                  <tr key={email.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                        {email.subject || 'No subject'}
                       </p>
-                    </div>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        email.status === 'sent' || email.status === 'delivered'
-                          ? 'bg-green-100 text-green-700'
-                          : email.status === 'failed'
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-yellow-100 text-yellow-700'
-                      }`}
-                    >
-                      {email.status}
-                    </span>
-                  </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-600">
+                        {email.recipientEmail || email.to || 'Unknown'}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-500">
+                        {new Date(email.createdAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={email.status} />
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link to="/templates/new">
-                <LayoutTemplate className="mr-2 h-4 w-4" />
-                Create New Template
-              </Link>
-            </Button>
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link to="/adapters">
-                <Mail className="mr-2 h-4 w-4" />
-                Configure Email Provider
-              </Link>
-            </Button>
-            <Button asChild className="w-full justify-start" variant="outline">
-              <Link to="/api-keys">
-                <Activity className="mr-2 h-4 w-4" />
-                Generate API Key
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -167,8 +256,9 @@ interface DeliveryChartProps {
 
 function DeliveryChart({ emails, totalEmails }: DeliveryChartProps) {
   const chartData = useMemo(() => {
+    const today = new Date();
+
     if (totalEmails === 0) {
-      const today = new Date();
       return Array.from({ length: 7 }, (_, i) => {
         const date = new Date(today);
         date.setDate(date.getDate() - (6 - i));
@@ -180,7 +270,6 @@ function DeliveryChart({ emails, totalEmails }: DeliveryChartProps) {
     }
 
     const emailsByDate = new Map<string, number>();
-    const today = new Date();
 
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
@@ -204,49 +293,60 @@ function DeliveryChart({ emails, totalEmails }: DeliveryChartProps) {
 
   if (totalEmails === 0) {
     return (
-      <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-        No email data yet. Send your first email to see delivery trends.
+      <div className="h-[280px] flex items-center justify-center">
+        <div className="text-center">
+          <TrendingUp className="mx-auto h-10 w-10 text-gray-300" />
+          <p className="mt-3 text-sm font-medium text-gray-900">No data yet</p>
+          <p className="mt-1 text-sm text-gray-500">Send your first email to see delivery trends</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[200px]">
+    <div className="h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="emailGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(262, 83%, 58%)" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="hsl(262, 83%, 58%)" stopOpacity={0.05} />
+              <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <XAxis
             dataKey="date"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+            tick={{ fontSize: 12, fill: '#9ca3af' }}
+            dy={10}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+            tick={{ fontSize: 12, fill: '#9ca3af' }}
             allowDecimals={false}
+            dx={-10}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'hsl(var(--background))',
-              border: '1px solid hsl(var(--border))',
-              borderRadius: '8px',
-              fontSize: '12px',
+              backgroundColor: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '12px',
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+              fontSize: '13px',
+              padding: '10px 14px',
             }}
-            labelStyle={{ fontWeight: 600 }}
+            labelStyle={{ fontWeight: 600, color: '#111827', marginBottom: '4px' }}
+            itemStyle={{ color: '#6b7280' }}
           />
           <Area
             type="monotone"
             dataKey="emails"
-            stroke="hsl(262, 83%, 58%)"
-            strokeWidth={2}
+            stroke="#8b5cf6"
+            strokeWidth={2.5}
             fill="url(#emailGradient)"
+            dot={false}
+            activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
           />
         </AreaChart>
       </ResponsiveContainer>

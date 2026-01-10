@@ -2,22 +2,25 @@ export const TEAM_ROLES = {
   OWNER: 'owner',
   ADMIN: 'admin',
   MEMBER: 'member',
+  VIEWER: 'viewer',
 } as const;
 
 export type TeamRole = (typeof TEAM_ROLES)[keyof typeof TEAM_ROLES];
 
-export const TEAM_ROLE_LIST: TeamRole[] = ['owner', 'admin', 'member'];
+export const TEAM_ROLE_LIST: TeamRole[] = ['owner', 'admin', 'member', 'viewer'];
 
 export const TEAM_ROLE_LABELS: Record<TeamRole, string> = {
   owner: 'Owner',
   admin: 'Admin',
   member: 'Member',
+  viewer: 'Viewer',
 };
 
 export const TEAM_ROLE_DESCRIPTIONS: Record<TeamRole, string> = {
   owner: 'Full access, can delete team and manage billing',
   admin: 'Can manage members, templates, and adapters',
   member: 'Can view and edit templates',
+  viewer: 'Read-only access to templates and logs',
 };
 
 export const TEAM_PERMISSIONS = {
@@ -26,9 +29,11 @@ export const TEAM_PERMISSIONS = {
   'team:invite': ['owner', 'admin'],
   'team:remove-member': ['owner', 'admin'],
   'team:update-role': ['owner'],
+  'templates:view': ['owner', 'admin', 'member', 'viewer'],
   'templates:create': ['owner', 'admin', 'member'],
   'templates:update': ['owner', 'admin', 'member'],
   'templates:delete': ['owner', 'admin'],
+  'adapters:view': ['owner', 'admin', 'member', 'viewer'],
   'adapters:create': ['owner', 'admin'],
   'adapters:update': ['owner', 'admin'],
   'adapters:delete': ['owner', 'admin'],
@@ -36,10 +41,11 @@ export const TEAM_PERMISSIONS = {
   'api-keys:create': ['owner', 'admin'],
   'api-keys:delete': ['owner', 'admin'],
   'api-keys:view': ['owner', 'admin'],
+  'webhooks:view': ['owner', 'admin', 'member', 'viewer'],
   'webhooks:create': ['owner', 'admin'],
   'webhooks:update': ['owner', 'admin'],
   'webhooks:delete': ['owner', 'admin'],
-  'logs:view': ['owner', 'admin', 'member'],
+  'logs:view': ['owner', 'admin', 'member', 'viewer'],
   'logs:resend': ['owner', 'admin'],
 } as const;
 

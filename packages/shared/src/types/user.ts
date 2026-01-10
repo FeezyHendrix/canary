@@ -7,6 +7,8 @@ export interface User {
   avatarUrl: string | null;
   googleId: string | null;
   githubId: string | null;
+  emailVerified: boolean;
+  hasPassword: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +19,8 @@ export interface SessionUser {
   name: string | null;
   avatarUrl: string | null;
   activeTeamId: string | null;
+  emailVerified: boolean;
+  hasPassword: boolean;
 }
 
 export interface AuthResponse {

@@ -31,7 +31,7 @@ export const emailStatusEnum = pgEnum('email_status', [
   'spam',
 ]);
 
-export const teamRoleEnum = pgEnum('team_role', ['owner', 'admin', 'member']);
+export const teamRoleEnum = pgEnum('team_role', ['owner', 'admin', 'member', 'viewer']);
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -40,6 +40,13 @@ export const users = pgTable('users', {
   avatarUrl: text('avatar_url'),
   googleId: text('google_id').unique(),
   githubId: text('github_id').unique(),
+  // Password authentication fields
+  passwordHash: text('password_hash'),
+  emailVerified: boolean('email_verified').default(false),
+  emailVerificationToken: text('email_verification_token'),
+  emailVerificationExpiresAt: timestamp('email_verification_expires_at'),
+  passwordResetToken: text('password_reset_token'),
+  passwordResetExpiresAt: timestamp('password_reset_expires_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

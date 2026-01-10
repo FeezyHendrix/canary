@@ -7,7 +7,9 @@ interface AuthContextType {
   teams: TeamMembership[];
   currentTeam: TeamMembership | null;
   isLoading: boolean;
+  isFirstTimeSetup: boolean | null;
   login: () => void;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   switchTeam: (teamId: string) => Promise<void>;
   refetch: () => Promise<void>;
@@ -19,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [teams, setTeams] = useState<TeamMembership[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFirstTimeSetup, setIsFirstTimeSetup] = useState<boolean | null>(null);
 
   const fetchUser = useCallback(async () => {
     try {
@@ -38,12 +41,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const checkSetupStatus = useCallback(async () => {
+    try {
+      const response = await api.get<{
+        success: boolean;
+        data: { isFirstTimeSetup: boolean };
+      }>('/api/auth/setup-status');
+      if (response.success) {
+        setIsFirstTimeSetup(response.data.isFirstTimeSetup);
+      }
+    } catch {
+      setIsFirstTimeSetup(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchUser();
-  }, [fetchUser]);
+    checkSetupStatus();
+  }, [fetchUser, checkSetupStatus]);
 
   const login = () => {
     window.location.href = '/api/auth/google';
+  };
+
+  const loginWithEmail = async (email: string, password: string) => {
+    await api.post('/api/auth/login', { email, password });
+    await fetchUser();
   };
 
   const logout = async () => {
@@ -69,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         teams,
         currentTeam,
         isLoading,
+        isFirstTimeSetup,
         login,
+        loginWithEmail,
         logout,
         switchTeam,
         refetch: fetchUser,

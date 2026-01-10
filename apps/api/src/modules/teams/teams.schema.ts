@@ -15,7 +15,7 @@ export const inviteMemberSchema = z.object({
 });
 
 export const updateMemberRoleSchema = z.object({
-  role: z.enum(['admin', 'member']),
+  role: z.enum(['admin', 'member', 'viewer']),
 });
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;

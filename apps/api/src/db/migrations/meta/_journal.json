@@ -8,6 +8,13 @@
       "when": 1767185601157,
       "tag": "0000_third_hitman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767993024212,
+      "tag": "0001_fat_absorbing_man",
+      "breakpoints": true
     }
   ]
 }
