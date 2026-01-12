@@ -632,7 +632,9 @@ curl https://your-domain.com/api/v1/eml_abc123def456/status \
 
 ## Template Variables
 
-Templates support Handlebars-style variables using double curly braces:
+Canary uses [Handlebars](https://handlebarsjs.com/) for template rendering. Variables are enclosed in double curly braces and replaced with values when sending.
+
+### Basic Usage
 
 ```html
 <p>Hello {{name}},</p>
@@ -659,6 +661,7 @@ Access nested objects using dot notation:
 ```html
 <p>Order #{{order.id}}</p>
 <p>Total: {{order.total}}</p>
+<p>Ship to: {{order.shipping.city}}, {{order.shipping.country}}</p>
 ```
 
 ```json
@@ -666,39 +669,265 @@ Access nested objects using dot notation:
   "variables": {
     "order": {
       "id": "ORD-123",
-      "total": "$99.00"
+      "total": "$99.00",
+      "shipping": {
+        "city": "New York",
+        "country": "USA"
+      }
     }
   }
 }
 ```
 
-### Conditional Content
+---
 
-Use Handlebars conditionals:
+### Conditionals
+
+Use `{{#if}}` to conditionally render content:
 
 ```html
-{{#if premium}}
-<p>Thank you for being a premium member!</p>
+{{#if isPremium}}
+  <p>Thank you for being a premium member!</p>
+{{/if}}
+
+{{#if hasDiscount}}
+  <p>Your discount: {{discountAmount}}</p>
+{{else}}
+  <p>No discount applied</p>
 {{/if}}
 ```
 
-### Loops
-
-Iterate over arrays:
+**Inverse conditionals** with `{{#unless}}`:
 
 ```html
+{{#unless isVerified}}
+  <p>Please verify your email address.</p>
+{{/unless}}
+```
+
+---
+
+### Loops
+
+Iterate over arrays with `{{#each}}`:
+
+```html
+<h3>Your Order Items:</h3>
+<ul>
 {{#each items}}
-<li>{{this.name}} - {{this.price}}</li>
+  <li>{{this.name}} - {{this.price}}</li>
 {{/each}}
+</ul>
 ```
 
 ```json
 {
   "variables": {
     "items": [
-      { "name": "Widget", "price": "$10" },
-      { "name": "Gadget", "price": "$20" }
+      { "name": "Widget", "price": "$10.00" },
+      { "name": "Gadget", "price": "$25.00" }
     ]
   }
 }
 ```
+
+**Access index in loops** with `@index`:
+
+```html
+{{#each items}}
+  <p>{{@index}}. {{this.name}}</p>
+{{/each}}
+```
+
+---
+
+### Comparison Helpers
+
+Canary provides built-in comparison helpers:
+
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `eq` | Equal | `{{#if (eq status "active")}}` |
+| `ne` | Not equal | `{{#if (ne status "cancelled")}}` |
+| `gt` | Greater than | `{{#if (gt quantity 0)}}` |
+| `gte` | Greater than or equal | `{{#if (gte total 100)}}` |
+| `lt` | Less than | `{{#if (lt stock 10)}}` |
+| `lte` | Less than or equal | `{{#if (lte days 30)}}` |
+| `and` | Logical AND | `{{#if (and isActive isPremium)}}` |
+| `or` | Logical OR | `{{#if (or hasEmail hasPhone)}}` |
+| `not` | Logical NOT | `{{#if (not isExpired)}}` |
+
+**Example:**
+
+```html
+{{#if (eq orderStatus "shipped")}}
+  <p>Your order is on its way!</p>
+{{/if}}
+
+{{#if (and isPremium (gte orderTotal 50))}}
+  <p>Free shipping applied!</p>
+{{/if}}
+```
+
+---
+
+### Formatting Helpers
+
+Transform and format values:
+
+| Helper | Description | Example |
+|--------|-------------|---------|
+| `formatDate` | Format dates | `{{formatDate createdAt "short"}}` |
+| `formatCurrency` | Format as currency | `{{formatCurrency amount "USD"}}` |
+| `uppercase` | Convert to uppercase | `{{uppercase name}}` |
+| `lowercase` | Convert to lowercase | `{{lowercase email}}` |
+| `capitalize` | Capitalize first letter | `{{capitalize status}}` |
+| `truncate` | Truncate with ellipsis | `{{truncate description 100}}` |
+| `default` | Default value if null | `{{default nickname "Friend"}}` |
+| `json` | Output as JSON | `{{json orderData}}` |
+
+#### formatDate
+
+Format dates in different styles:
+
+```html
+<!-- ISO format (default) -->
+<p>Created: {{formatDate createdAt}}</p>
+<!-- Output: 2024-01-15T10:30:00.000Z -->
+
+<!-- Short format -->
+<p>Date: {{formatDate createdAt "short"}}</p>
+<!-- Output: 1/15/2024 -->
+
+<!-- Long format -->
+<p>Date: {{formatDate createdAt "long"}}</p>
+<!-- Output: Monday, January 15, 2024 -->
+```
+
+#### formatCurrency
+
+Format numbers as currency:
+
+```html
+<p>Total: {{formatCurrency amount}}</p>
+<!-- Output: $99.00 (default USD) -->
+
+<p>Total: {{formatCurrency amount "EUR"}}</p>
+<!-- Output: €99.00 -->
+
+<p>Total: {{formatCurrency amount "GBP"}}</p>
+<!-- Output: £99.00 -->
+```
+
+```json
+{
+  "variables": {
+    "amount": 99
+  }
+}
+```
+
+#### truncate
+
+Truncate long text:
+
+```html
+<p>{{truncate productDescription 50}}</p>
+<!-- "This is a very long product description..." -->
+```
+
+#### default
+
+Provide fallback values:
+
+```html
+<p>Hello {{default firstName "Valued Customer"}},</p>
+<!-- If firstName is null/undefined, shows "Hello Valued Customer," -->
+```
+
+---
+
+### Complete Example
+
+Here's a full example combining multiple features:
+
+**Template:**
+
+```html
+<h1>Order Confirmation</h1>
+
+<p>Hello {{default name "Customer"}},</p>
+
+<p>Thank you for your order on {{formatDate orderDate "long"}}!</p>
+
+<h2>Order #{{order.id}}</h2>
+
+<table>
+  <tr>
+    <th>Item</th>
+    <th>Qty</th>
+    <th>Price</th>
+  </tr>
+  {{#each order.items}}
+  <tr>
+    <td>{{this.name}}</td>
+    <td>{{this.quantity}}</td>
+    <td>{{formatCurrency this.price}}</td>
+  </tr>
+  {{/each}}
+</table>
+
+<p><strong>Total: {{formatCurrency order.total}}</strong></p>
+
+{{#if (gte order.total 100)}}
+  <p style="color: green;">✓ Free shipping included!</p>
+{{/if}}
+
+{{#if order.notes}}
+  <p><em>Notes: {{truncate order.notes 200}}</em></p>
+{{/if}}
+
+<p>Questions? Reply to this email or contact support.</p>
+```
+
+**API Request:**
+
+```json
+{
+  "templateId": "order-confirmation",
+  "to": "customer@example.com",
+  "variables": {
+    "name": "John",
+    "orderDate": "2024-01-15T10:30:00Z",
+    "order": {
+      "id": "ORD-12345",
+      "items": [
+        { "name": "Wireless Mouse", "quantity": 1, "price": 29.99 },
+        { "name": "USB-C Cable", "quantity": 2, "price": 12.99 }
+      ],
+      "total": 55.97,
+      "notes": "Please leave at the front door"
+    }
+  }
+}
+```
+
+---
+
+### Variable Extraction
+
+When you create or update a template, Canary automatically extracts all variables used in the template. These are stored and displayed in the template editor to help you know what data to pass when sending.
+
+Variables are extracted from:
+- Template subject line
+- Template body content (HTML)
+- All block content in the visual editor
+
+---
+
+### Tips
+
+1. **Missing variables** render as empty strings - always provide all required variables
+2. **Use `default` helper** for optional variables to show fallback content
+3. **Test with sample data** in the template editor before sending
+4. **Nested paths** like `{{user.address.city}}` fail silently if any part is undefined
