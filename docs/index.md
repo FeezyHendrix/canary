@@ -10,22 +10,38 @@ Open-source email template designer with a visual drag-and-drop builder. Self-ho
 
 ## Features
 
-- **Visual Email Editor** - Drag-and-drop builder with live preview, 10+ block types, nested containers, and multi-column layouts
+- **Visual Email Editor** - Drag-and-drop builder with live preview, 19 block types including charts, tables, code blocks, and multi-column layouts
+- **Dynamic Charts** - Embed bar, line, pie, area, and doughnut charts with static or dynamic data
 - **PDF Attachments** - Generate PDF versions of your templates and attach them to emails automatically
 - **Multiple Email Providers** - Connect SendGrid, Resend, Mailgun, Amazon SES, Postmark, or generic SMTP
 - **Background Processing** - Reliable email delivery with async job queue and automatic retries
 - **Webhooks** - Receive real-time notifications for email events (sent, delivered, opened, bounced, etc.)
+- **Email Logs** - Track sent emails, filter by date/status, view delivery details, and resend failed emails
 - **Team Management** - OAuth login, role-based access control, and multi-team support
 - **REST API** - Full API access with key-based authentication and rate limiting
+
+## Block Types
+
+The visual editor includes 19 block types:
+
+| Category | Blocks |
+|----------|--------|
+| Basic | Heading, Text, Button, Image, Divider, Spacer |
+| Layout | Container, 2-Column, 3-Column |
+| Content | Avatar, Quote, List, Table, Code, Badge, Icon |
+| Media | Video, Social Icons |
+| Advanced | HTML, Chart (with dynamic data support) |
 
 ## Quick Links
 
 | Resource                                        | Description                        |
 | ----------------------------------------------- | ---------------------------------- |
 | [Quick Start Guide](guides/quickstart)          | Get up and running in 5 minutes    |
+| [Template Designer](guides/template-designer)   | Learn the visual email editor      |
 | [API Overview](api/)                            | Introduction to the Canary API     |
 | [Send Email API](api/emails)                    | Send emails programmatically       |
 | [Templates API](api/templates)                  | Manage email templates             |
+| [Email Logs API](api/logs)                      | View logs and resend emails        |
 | [PDF Attachments Guide](guides/pdf-attachments) | Generate and attach PDFs to emails |
 
 ## Architecture Overview

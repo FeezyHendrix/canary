@@ -163,6 +163,13 @@ These endpoints require session authentication:
 - `PUT /api/templates/:id` - [Update template](templates#update-template)
 - `DELETE /api/templates/:id` - [Delete template](templates#delete-template)
 
+**Email Logs**
+
+- `GET /api/logs` - [List email logs](logs#list-email-logs)
+- `GET /api/logs/stats` - [Get email statistics](logs#get-email-statistics)
+- `GET /api/logs/:id` - [Get email log](logs#get-email-log)
+- `POST /api/logs/:id/resend` - [Resend failed email](logs#resend-email)
+
 **Adapters**
 
 - `GET /api/adapters` - [List adapters](adapters#list-adapters)
