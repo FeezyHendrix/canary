@@ -12,7 +12,14 @@ class ApiClient {
   }
 
   private buildUrl(path: string, params?: Record<string, string | number | boolean | undefined>): string {
-    const url = new URL(`${this.baseUrl}${path}`);
+    // Handle both absolute and relative URLs
+    const fullPath = `${this.baseUrl}${path}`;
+
+    // If no base URL, use relative path with current origin
+    const url = this.baseUrl
+      ? new URL(fullPath)
+      : new URL(fullPath, window.location.origin);
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined) {
@@ -27,13 +34,19 @@ class ApiClient {
     const { params, ...fetchOptions } = options;
     const url = this.buildUrl(path, params);
 
+    const headers: Record<string, string> = {
+      ...fetchOptions.headers as Record<string, string>,
+    };
+
+    // Only set Content-Type for requests with a body
+    if (fetchOptions.body) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(url, {
       ...fetchOptions,
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...fetchOptions.headers,
-      },
+      headers,
     });
 
     const data = await response.json();

@@ -18,7 +18,8 @@ export type BlockType =
   | 'Table'
   | 'Code'
   | 'Badge'
-  | 'Icon';
+  | 'Icon'
+  | 'Chart';
 
 export interface BlockTemplate {
   type: BlockType;
@@ -358,6 +359,34 @@ export const BLOCK_TEMPLATES: BlockTemplate[] = [
           color: '#3b82f6',
           alignment: 'center',
           label: '',
+        },
+      },
+    }),
+  },
+  {
+    type: 'Chart',
+    label: 'Chart',
+    icon: '📊',
+    createBlock: () => ({
+      type: 'Chart',
+      data: {
+        style: {
+          padding: { top: 16, bottom: 16, left: 24, right: 24 },
+        },
+        props: {
+          chartType: 'bar',
+          title: 'Chart Title',
+          dataSource: 'static',
+          staticData: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+            datasets: [{ name: 'Series 1', values: [100, 150, 120, 180] }],
+          },
+          colors: ['#3b82f6', '#ef4444', '#22c55e'],
+          showLegend: true,
+          legendPosition: 'bottom',
+          showGridLines: true,
+          width: 500,
+          height: 300,
         },
       },
     }),

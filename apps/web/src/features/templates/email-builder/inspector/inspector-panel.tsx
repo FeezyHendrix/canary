@@ -1,3 +1,4 @@
+import { useMemo, useCallback } from 'react';
 import { useEditorStore } from '../editor-context';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,9 +9,14 @@ export function InspectorPanel() {
   const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
   const selectedSidebarTab = useEditorStore((s) => s.selectedSidebarTab);
   const setSidebarTab = useEditorStore((s) => s.setSidebarTab);
+  const isPdf = useEditorStore((s) => s.isPdf);
 
-  const selectedBlock = selectedBlockId ? document[selectedBlockId] : null;
-  const rootBlock = document.root;
+  // Memoize derived values to avoid unnecessary child re-renders
+  const selectedBlock = useMemo(
+    () => (selectedBlockId ? document[selectedBlockId] : null),
+    [document, selectedBlockId]
+  );
+  const rootBlock = useMemo(() => document.root, [document]);
 
   return (
     <div className="h-full flex flex-col">
@@ -39,7 +45,7 @@ export function InspectorPanel() {
 
       <div className="flex-1 overflow-auto p-4">
         {selectedSidebarTab === 'styles' ? (
-          <StylesPanel rootBlock={rootBlock} />
+          <StylesPanel rootBlock={rootBlock} isPdf={isPdf} />
         ) : selectedBlock ? (
           <BlockConfigPanel blockId={selectedBlockId!} block={selectedBlock} />
         ) : (
@@ -54,9 +60,10 @@ export function InspectorPanel() {
 
 interface StylesPanelProps {
   rootBlock: { type: string; data: Record<string, unknown> };
+  isPdf: boolean;
 }
 
-function StylesPanel({ rootBlock }: StylesPanelProps) {
+function StylesPanel({ rootBlock, isPdf }: StylesPanelProps) {
   const updateBlock = useEditorStore((s) => s.updateBlock);
 
   const data = rootBlock.data as {
@@ -68,7 +75,7 @@ function StylesPanel({ rootBlock }: StylesPanelProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-medium">Email Styles</h3>
+      <h3 className="font-medium">{isPdf ? 'PDF' : 'Email'} Styles</h3>
 
       <div className="space-y-3">
         <div>
@@ -160,24 +167,24 @@ function BlockConfigPanel({ blockId, block }: BlockConfigPanelProps) {
 
   const props = (block.data.props || {}) as Record<string, unknown>;
   const style = (block.data.style || {}) as Record<string, unknown>;
-  const padding = (style.padding || { top: 0, bottom: 0, left: 0, right: 0 }) as {
+  const padding = useMemo(() => (style.padding || { top: 0, bottom: 0, left: 0, right: 0 }) as {
     top: number;
     bottom: number;
     left: number;
     right: number;
-  };
+  }, [style.padding]);
 
-  const updateProps = (newProps: Record<string, unknown>) => {
+  const updateProps = useCallback((newProps: Record<string, unknown>) => {
     updateBlock(blockId, { props: { ...props, ...newProps } });
-  };
+  }, [blockId, props, updateBlock]);
 
-  const updateStyle = (newStyle: Record<string, unknown>) => {
+  const updateStyle = useCallback((newStyle: Record<string, unknown>) => {
     updateBlock(blockId, { style: { ...style, ...newStyle } });
-  };
+  }, [blockId, style, updateBlock]);
 
-  const updatePadding = (key: keyof typeof padding, value: number) => {
+  const updatePadding = useCallback((key: 'top' | 'bottom' | 'left' | 'right', value: number) => {
     updateStyle({ padding: { ...padding, [key]: value } });
-  };
+  }, [padding, updateStyle]);
 
   return (
     <div className="space-y-4">
@@ -830,6 +837,40 @@ function BlockConfigPanel({ blockId, block }: BlockConfigPanelProps) {
         />
       )}
 
+      {block.type === 'Chart' && (
+        <ChartEditor
+          chartType={(props.chartType as string) || 'bar'}
+          title={(props.title as string) || ''}
+          dataSource={(props.dataSource as string) || 'static'}
+          staticData={
+            (props.staticData as { labels: string[]; datasets: Array<{ name: string; values: number[] }> }) || {
+              labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+              datasets: [{ name: 'Series 1', values: [100, 150, 120, 180] }],
+            }
+          }
+          dynamicVariable={(props.dynamicVariable as string) || ''}
+          colors={(props.colors as string[]) || ['#3b82f6', '#ef4444', '#22c55e']}
+          showLegend={(props.showLegend as boolean) ?? true}
+          legendPosition={(props.legendPosition as string) || 'bottom'}
+          showGridLines={(props.showGridLines as boolean) ?? true}
+          axisLabels={(props.axisLabels as { x?: string; y?: string }) || {}}
+          width={(props.width as number) || 500}
+          height={(props.height as number) || 300}
+          onChangeChartType={(chartType) => updateProps({ chartType })}
+          onChangeTitle={(title) => updateProps({ title })}
+          onChangeDataSource={(dataSource) => updateProps({ dataSource })}
+          onChangeStaticData={(staticData) => updateProps({ staticData })}
+          onChangeDynamicVariable={(dynamicVariable) => updateProps({ dynamicVariable })}
+          onChangeColors={(colors) => updateProps({ colors })}
+          onChangeShowLegend={(showLegend) => updateProps({ showLegend })}
+          onChangeLegendPosition={(legendPosition) => updateProps({ legendPosition })}
+          onChangeShowGridLines={(showGridLines) => updateProps({ showGridLines })}
+          onChangeAxisLabels={(axisLabels) => updateProps({ axisLabels })}
+          onChangeWidth={(width) => updateProps({ width })}
+          onChangeHeight={(height) => updateProps({ height })}
+        />
+      )}
+
       <div className="pt-4 border-t">
         <Label className="text-muted-foreground font-medium">Block Styles</Label>
 
@@ -1035,6 +1076,380 @@ interface TableEditorProps {
   onChangeHeaderBackground: (color: string) => void;
   onChangeBorderColor: (color: string) => void;
   onChangeStripedRows: (striped: boolean) => void;
+}
+
+interface ChartEditorProps {
+  chartType: string;
+  title: string;
+  dataSource: string;
+  staticData: { labels: string[]; datasets: Array<{ name: string; values: number[] }> };
+  dynamicVariable: string;
+  colors: string[];
+  showLegend: boolean;
+  legendPosition: string;
+  showGridLines: boolean;
+  axisLabels: { x?: string; y?: string };
+  width: number;
+  height: number;
+  onChangeChartType: (type: string) => void;
+  onChangeTitle: (title: string) => void;
+  onChangeDataSource: (source: string) => void;
+  onChangeStaticData: (data: { labels: string[]; datasets: Array<{ name: string; values: number[] }> }) => void;
+  onChangeDynamicVariable: (variable: string) => void;
+  onChangeColors: (colors: string[]) => void;
+  onChangeShowLegend: (show: boolean) => void;
+  onChangeLegendPosition: (position: string) => void;
+  onChangeShowGridLines: (show: boolean) => void;
+  onChangeAxisLabels: (labels: { x?: string; y?: string }) => void;
+  onChangeWidth: (width: number) => void;
+  onChangeHeight: (height: number) => void;
+}
+
+function ChartEditor({
+  chartType,
+  title,
+  dataSource,
+  staticData,
+  dynamicVariable,
+  colors,
+  showLegend,
+  legendPosition,
+  showGridLines,
+  axisLabels,
+  width,
+  height,
+  onChangeChartType,
+  onChangeTitle,
+  onChangeDataSource,
+  onChangeStaticData,
+  onChangeDynamicVariable,
+  onChangeColors,
+  onChangeShowLegend,
+  onChangeLegendPosition,
+  onChangeShowGridLines,
+  onChangeAxisLabels,
+  onChangeWidth,
+  onChangeHeight,
+}: ChartEditorProps) {
+  const chartTypes = [
+    { value: 'bar', label: 'Bar', icon: '▮' },
+    { value: 'line', label: 'Line', icon: '📈' },
+    { value: 'pie', label: 'Pie', icon: '◐' },
+    { value: 'doughnut', label: 'Donut', icon: '◯' },
+    { value: 'area', label: 'Area', icon: '▲' },
+  ];
+
+  const updateDatasetName = (index: number, name: string) => {
+    const newDatasets = [...staticData.datasets];
+    newDatasets[index] = { ...newDatasets[index], name };
+    onChangeStaticData({ ...staticData, datasets: newDatasets });
+  };
+
+  const updateDatasetValues = (index: number, valuesStr: string) => {
+    const values = valuesStr.split(',').map((v) => parseFloat(v.trim()) || 0);
+    const newDatasets = [...staticData.datasets];
+    newDatasets[index] = { ...newDatasets[index], values };
+    onChangeStaticData({ ...staticData, datasets: newDatasets });
+  };
+
+  const addDataset = () => {
+    const newDatasets = [
+      ...staticData.datasets,
+      { name: `Series ${staticData.datasets.length + 1}`, values: staticData.labels.map(() => 0) },
+    ];
+    onChangeStaticData({ ...staticData, datasets: newDatasets });
+  };
+
+  const removeDataset = (index: number) => {
+    if (staticData.datasets.length <= 1) return;
+    const newDatasets = staticData.datasets.filter((_, i) => i !== index);
+    onChangeStaticData({ ...staticData, datasets: newDatasets });
+  };
+
+  const addColor = () => {
+    const defaultColors = ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899'];
+    const nextColor = defaultColors[colors.length % defaultColors.length];
+    onChangeColors([...colors, nextColor]);
+  };
+
+  const updateColor = (index: number, color: string) => {
+    const newColors = [...colors];
+    newColors[index] = color;
+    onChangeColors(newColors);
+  };
+
+  const removeColor = (index: number) => {
+    if (colors.length <= 1) return;
+    onChangeColors(colors.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <Label>Chart Type</Label>
+        <div className="flex gap-1 mt-1">
+          {chartTypes.map((type) => (
+            <button
+              key={type.value}
+              onClick={() => onChangeChartType(type.value)}
+              className={`flex-1 flex flex-col items-center gap-1 p-2 rounded border text-xs ${
+                chartType === type.value
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <span>{type.icon}</span>
+              <span>{type.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <Label>Title</Label>
+        <Input
+          value={title}
+          onChange={(e) => onChangeTitle(e.target.value)}
+          className="mt-1"
+          placeholder="Chart title"
+        />
+      </div>
+
+      <div>
+        <Label>Data Source</Label>
+        <div className="flex gap-2 mt-1">
+          <button
+            onClick={() => onChangeDataSource('static')}
+            className={`flex-1 px-3 py-2 text-sm rounded border ${
+              dataSource === 'static'
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            Static Data
+          </button>
+          <button
+            onClick={() => onChangeDataSource('dynamic')}
+            className={`flex-1 px-3 py-2 text-sm rounded border ${
+              dataSource === 'dynamic'
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            Dynamic Variable
+          </button>
+        </div>
+      </div>
+
+      {dataSource === 'dynamic' ? (
+        <div>
+          <Label>Variable Name</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-muted-foreground">{'{{'}</span>
+            <Input
+              value={dynamicVariable}
+              onChange={(e) => onChangeDynamicVariable(e.target.value)}
+              placeholder="chartData"
+              className="flex-1"
+            />
+            <span className="text-muted-foreground">{'}}'}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Pass chart data via API at send time</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <Label>Labels (comma-separated)</Label>
+            <Input
+              value={staticData.labels.join(', ')}
+              onChange={(e) =>
+                onChangeStaticData({
+                  ...staticData,
+                  labels: e.target.value.split(',').map((l) => l.trim()),
+                })
+              }
+              className="mt-1"
+              placeholder="Jan, Feb, Mar, Apr"
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <Label>Datasets</Label>
+              <button onClick={addDataset} className="text-xs text-primary hover:underline">
+                + Add Dataset
+              </button>
+            </div>
+            <div className="space-y-2 mt-2">
+              {staticData.datasets.map((dataset, index) => (
+                <div key={index} className="p-2 border rounded bg-gray-50 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={dataset.name}
+                      onChange={(e) => updateDatasetName(index, e.target.value)}
+                      placeholder="Dataset name"
+                      className="flex-1 text-sm"
+                    />
+                    {staticData.datasets.length > 1 && (
+                      <button
+                        onClick={() => removeDataset(index)}
+                        className="text-red-500 hover:text-red-700 px-2"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  <Input
+                    value={dataset.values.join(', ')}
+                    onChange={(e) => updateDatasetValues(index, e.target.value)}
+                    placeholder="100, 150, 120, 180"
+                    className="text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <details className="group">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+          Appearance
+        </summary>
+        <div className="mt-3 space-y-3 pl-2">
+          <div>
+            <Label className="text-xs">Colors</Label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {colors.map((color, index) => (
+                <div key={index} className="flex items-center gap-1">
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => updateColor(index, e.target.value)}
+                    className="w-8 h-8 rounded border cursor-pointer"
+                  />
+                  {colors.length > 1 && (
+                    <button
+                      onClick={() => removeColor(index)}
+                      className="text-red-500 hover:text-red-700 text-xs"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={addColor}
+                className="w-8 h-8 rounded border border-dashed border-gray-300 text-gray-400 hover:border-gray-400 hover:text-gray-500 flex items-center justify-center"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="showLegend"
+              checked={showLegend}
+              onChange={(e) => onChangeShowLegend(e.target.checked)}
+            />
+            <Label htmlFor="showLegend" className="text-xs">
+              Show Legend
+            </Label>
+          </div>
+
+          {showLegend && (
+            <div>
+              <Label className="text-xs">Legend Position</Label>
+              <select
+                value={legendPosition}
+                onChange={(e) => onChangeLegendPosition(e.target.value)}
+                className="w-full mt-1 border rounded-md px-3 py-2 bg-background text-sm"
+              >
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+              </select>
+            </div>
+          )}
+
+          {chartType !== 'pie' && chartType !== 'doughnut' && (
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="showGridLines"
+                checked={showGridLines}
+                onChange={(e) => onChangeShowGridLines(e.target.checked)}
+              />
+              <Label htmlFor="showGridLines" className="text-xs">
+                Show Grid Lines
+              </Label>
+            </div>
+          )}
+        </div>
+      </details>
+
+      {chartType !== 'pie' && chartType !== 'doughnut' && (
+        <details className="group">
+          <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+            Axis Labels
+          </summary>
+          <div className="mt-3 space-y-3 pl-2">
+            <div>
+              <Label className="text-xs">X-Axis Label</Label>
+              <Input
+                value={axisLabels.x || ''}
+                onChange={(e) => onChangeAxisLabels({ ...axisLabels, x: e.target.value })}
+                className="mt-1 text-sm"
+                placeholder="e.g., Months"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Y-Axis Label</Label>
+              <Input
+                value={axisLabels.y || ''}
+                onChange={(e) => onChangeAxisLabels({ ...axisLabels, y: e.target.value })}
+                className="mt-1 text-sm"
+                placeholder="e.g., Revenue ($)"
+              />
+            </div>
+          </div>
+        </details>
+      )}
+
+      <details className="group">
+        <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground">
+          Dimensions
+        </summary>
+        <div className="mt-3 space-y-3 pl-2">
+          <div>
+            <Label className="text-xs">Width (px)</Label>
+            <Input
+              type="number"
+              value={width}
+              onChange={(e) => onChangeWidth(parseInt(e.target.value) || 500)}
+              className="mt-1 text-sm"
+              min={200}
+              max={800}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Height (px)</Label>
+            <Input
+              type="number"
+              value={height}
+              onChange={(e) => onChangeHeight(parseInt(e.target.value) || 300)}
+              className="mt-1 text-sm"
+              min={150}
+              max={600}
+            />
+          </div>
+        </div>
+      </details>
+    </div>
+  );
 }
 
 function TableEditor({

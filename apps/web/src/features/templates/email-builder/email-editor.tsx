@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Monitor,
   Smartphone,
@@ -26,6 +26,34 @@ import { InspectorPanel } from './inspector/inspector-panel';
 import { Button } from '@/components/ui/button';
 
 type ViewMode = 'editor' | 'preview' | 'html';
+
+/**
+ * Transform Chart blocks to Html placeholders for email-builder compatibility.
+ * The Reader component doesn't support custom block types.
+ */
+function transformChartBlocksForReader(doc: EditorDocument): EditorDocument {
+  const transformed = JSON.parse(JSON.stringify(doc)) as EditorDocument;
+
+  for (const [key, block] of Object.entries(transformed)) {
+    if (block && typeof block === 'object' && block.type === 'Chart') {
+      const data = block.data as Record<string, unknown>;
+      const props = data?.props as Record<string, unknown>;
+
+      // Convert Chart to Html block with a placeholder
+      transformed[key] = {
+        type: 'Html',
+        data: {
+          style: data?.style || {},
+          props: {
+            contents: `<div style="width:${props?.width || 500}px;height:${props?.height || 300}px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#6b7280;font-family:sans-serif;"><span style="font-size:14px;">📊 Chart: ${props?.title || (props?.dataSource === 'dynamic' ? `{{${props?.dynamicVariable || 'chartData'}}}` : 'Static Chart')}</span></div>`,
+          },
+        },
+      };
+    }
+  }
+
+  return transformed;
+}
 
 function formatHtml(html: string): string {
   let formatted = '';
@@ -63,6 +91,7 @@ interface EmailEditorProps {
   initialDocument?: EditorDocument;
   onChange?: (document: EditorDocument) => void;
   sampleData?: Record<string, string>;
+  isPdf?: boolean;
 }
 
 const KEYBOARD_SHORTCUTS = [
@@ -76,13 +105,19 @@ const KEYBOARD_SHORTCUTS = [
   { keys: ['Backspace'], action: 'Delete selected block' },
 ];
 
-export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEditorProps) {
+export function EmailEditor({ initialDocument, onChange, sampleData, isPdf = false }: EmailEditorProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('editor');
   const [screenSize, setScreenSize] = useState<'desktop' | 'mobile'>('desktop');
   const [showVariables, setShowVariables] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const document = useEditorStore((s) => s.document);
+  const setIsPdf = useEditorStore((s) => s.setIsPdf);
+
+  // Set isPdf in store when component mounts or isPdf prop changes
+  useEffect(() => {
+    setIsPdf(isPdf);
+  }, [isPdf, setIsPdf]);
   const selectedBlockId = useEditorStore((s) => s.selectedBlockId);
   const resetDocument = useEditorStore((s) => s.resetDocument);
   const inspectorOpen = useEditorStore((s) => s.inspectorOpen);
@@ -98,14 +133,29 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
   const canRedo = useCanRedo();
   const clipboard = useClipboard();
 
+  // Track if we've initialized with the initial document
+  const isInitialized = useRef(false);
+  // Track the last document string to avoid duplicate onChange calls
+  const lastDocStr = useRef<string>('');
+
+  // Initialize document on mount (only once per component instance)
   useEffect(() => {
-    if (initialDocument) {
+    if (!isInitialized.current && initialDocument) {
       resetDocument(initialDocument);
+      lastDocStr.current = JSON.stringify(initialDocument);
+      isInitialized.current = true;
     }
   }, [initialDocument, resetDocument]);
 
+  // Notify parent of changes (but not on initial mount)
   useEffect(() => {
-    onChange?.(document);
+    if (!isInitialized.current || !onChange) return;
+
+    const currentDocStr = JSON.stringify(document);
+    if (currentDocStr !== lastDocStr.current) {
+      lastDocStr.current = currentDocStr;
+      onChange(document);
+    }
   }, [document, onChange]);
 
   const handleKeyDown = useCallback(
@@ -171,17 +221,20 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const replaceVariables = (html: string, data: Record<string, string>): string => {
+  const replaceVariables = useCallback((html: string, data: Record<string, string>): string => {
     let result = html;
     for (const [key, value] of Object.entries(data)) {
       result = result.replace(new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g'), value);
     }
     return result;
-  };
+  }, []);
 
-  const htmlOutput = (() => {
+  // Memoize the expensive HTML rendering computation
+  const htmlOutput = useMemo(() => {
     try {
-      let html = renderToStaticMarkup(document as TReaderDocument, { rootBlockId: 'root' });
+      // Transform Chart blocks before rendering
+      const transformedDoc = transformChartBlocksForReader(document);
+      let html = renderToStaticMarkup(transformedDoc as TReaderDocument, { rootBlockId: 'root' });
       if (showVariables && sampleData) {
         html = replaceVariables(html, sampleData);
       }
@@ -189,7 +242,7 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
     } catch {
       return '<!-- Error rendering template -->';
     }
-  })();
+  }, [document, showVariables, sampleData, replaceVariables]);
 
   const downloadHtml = () => {
     const formattedHtml = formatHtml(htmlOutput);
@@ -371,7 +424,7 @@ export function EmailEditor({ initialDocument, onChange, sampleData }: EmailEdit
               {showVariables && sampleData ? (
                 <div dangerouslySetInnerHTML={{ __html: htmlOutput }} />
               ) : (
-                <Reader document={document as TReaderDocument} rootBlockId="root" />
+                <Reader document={transformChartBlocksForReader(document) as TReaderDocument} rootBlockId="root" />
               )}
             </div>
           )}

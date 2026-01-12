@@ -1,4 +1,20 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment, useEffect, useMemo } from 'react';
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from 'recharts';
 import {
   DndContext,
   DragEndEvent,
@@ -20,18 +36,42 @@ interface EditorCanvasProps {
   screenSize: 'desktop' | 'mobile';
 }
 
+// Moved outside component to avoid recreation on every render
+const GOOGLE_FONTS = [
+  'Inter',
+  'Roboto',
+  'Open Sans',
+  'Lato',
+  'Poppins',
+  'Montserrat',
+  'Source Sans 3',
+  'Nunito',
+  'Raleway',
+  'Playfair Display',
+  'Merriweather',
+  'Lora',
+  'Fira Code',
+  'JetBrains Mono',
+];
+
+function getFontFamily(fontFamily?: string): string {
+  const font = fontFamily || 'Inter';
+  if (GOOGLE_FONTS.includes(font)) {
+    return `"${font}", sans-serif`;
+  }
+  return '"Inter", sans-serif';
+}
+
 export function EditorCanvas({ screenSize }: EditorCanvasProps) {
   const document = useEditorStore((s) => s.document);
   const setSelectedBlockId = useEditorStore((s) => s.setSelectedBlockId);
   const moveBlock = useEditorStore((s) => s.moveBlock);
   const [activeId, setActiveId] = useState<string | null>(null);
 
+  // Memoize activation constraint to prevent sensor recreation
+  const activationConstraint = useMemo(() => ({ distance: 8 }), []);
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
+    useSensor(PointerSensor, { activationConstraint })
   );
 
   const rootBlock = document.root;
@@ -44,26 +84,9 @@ export function EditorCanvas({ screenSize }: EditorCanvasProps) {
     fontFamily?: string;
   };
 
-  const googleFonts = [
-    'Inter',
-    'Roboto',
-    'Open Sans',
-    'Lato',
-    'Poppins',
-    'Montserrat',
-    'Source Sans 3',
-    'Nunito',
-    'Raleway',
-    'Playfair Display',
-    'Merriweather',
-    'Lora',
-    'Fira Code',
-    'JetBrains Mono',
-  ];
-
   useEffect(() => {
     const fontFamily = rootStyles.fontFamily || 'Inter';
-    if (googleFonts.includes(fontFamily)) {
+    if (GOOGLE_FONTS.includes(fontFamily)) {
       const fontId = `google-font-${fontFamily.replace(/\s+/g, '-')}`;
       if (!window.document.getElementById(fontId)) {
         const link = window.document.createElement('link');
@@ -74,14 +97,6 @@ export function EditorCanvas({ screenSize }: EditorCanvasProps) {
       }
     }
   }, [rootStyles.fontFamily]);
-
-  const getFontFamily = (fontFamily?: string) => {
-    const font = fontFamily || 'Inter';
-    if (googleFonts.includes(font)) {
-      return `"${font}", sans-serif`;
-    }
-    return '"Inter", sans-serif';
-  };
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -212,35 +227,39 @@ export function BlockRenderer({ blockId, document }: BlockRendererProps) {
   }
 
   if (block.type === 'Video') {
-    return <VideoRenderer block={block} />;
+    return <div style={blockStyle}><VideoRenderer block={block} /></div>;
   }
 
   if (block.type === 'SocialIcons') {
-    return <SocialIconsRenderer block={block} />;
+    return <div style={blockStyle}><SocialIconsRenderer block={block} /></div>;
   }
 
   if (block.type === 'Quote') {
-    return <QuoteRenderer block={block} />;
+    return <div style={blockStyle}><QuoteRenderer block={block} /></div>;
   }
 
   if (block.type === 'List') {
-    return <ListRenderer block={block} />;
+    return <div style={blockStyle}><ListRenderer block={block} /></div>;
   }
 
   if (block.type === 'Table') {
-    return <TableRenderer block={block} />;
+    return <div style={blockStyle}><TableRenderer block={block} /></div>;
   }
 
   if (block.type === 'Code') {
-    return <CodeRenderer block={block} />;
+    return <div style={blockStyle}><CodeRenderer block={block} /></div>;
   }
 
   if (block.type === 'Badge') {
-    return <BadgeRenderer block={block} />;
+    return <div style={blockStyle}><BadgeRenderer block={block} /></div>;
   }
 
   if (block.type === 'Icon') {
-    return <IconRenderer block={block} />;
+    return <div style={blockStyle}><IconRenderer block={block} /></div>;
+  }
+
+  if (block.type === 'Chart') {
+    return <div style={blockStyle}><ChartRenderer block={block} /></div>;
   }
 
   return (
@@ -810,6 +829,176 @@ function IconRenderer({ block }: CustomBlockRendererProps) {
       </svg>
       {props.label && (
         <p style={{ marginTop: '8px', marginBottom: 0, fontSize: '14px' }}>{props.label}</p>
+      )}
+    </div>
+  );
+}
+
+function ChartRenderer({ block }: CustomBlockRendererProps) {
+  const props = block.data.props as {
+    chartType?: string;
+    title?: string;
+    dataSource?: string;
+    staticData?: { labels: string[]; datasets: Array<{ name: string; values: number[] }> };
+    dynamicVariable?: string;
+    colors?: string[];
+    showLegend?: boolean;
+    legendPosition?: string;
+    showGridLines?: boolean;
+    axisLabels?: { x?: string; y?: string };
+    width?: number;
+    height?: number;
+  };
+  const style = block.data.style as Record<string, unknown>;
+
+  const chartType = props.chartType || 'bar';
+  const colors = props.colors || ['#3b82f6', '#ef4444', '#22c55e'];
+  const width = props.width || 500;
+  const height = props.height || 300;
+  const showLegend = props.showLegend ?? true;
+  const showGridLines = props.showGridLines ?? true;
+
+  // Transform data for Recharts
+  const chartData = useMemo(() => {
+    if (props.dataSource === 'dynamic') {
+      // Show placeholder data for dynamic charts
+      return [
+        { name: 'Sample 1', value: 100 },
+        { name: 'Sample 2', value: 150 },
+        { name: 'Sample 3', value: 120 },
+        { name: 'Sample 4', value: 180 },
+      ];
+    }
+
+    const staticData = props.staticData;
+    if (!staticData) return [];
+
+    return staticData.labels.map((label, index) => {
+      const point: Record<string, string | number> = { name: label };
+      staticData.datasets.forEach((dataset) => {
+        point[dataset.name] = dataset.values[index] || 0;
+      });
+      return point;
+    });
+  }, [props.dataSource, props.staticData]);
+
+  const datasetNames = useMemo(() => {
+    if (props.dataSource === 'dynamic') return ['value'];
+    return props.staticData?.datasets.map((d) => d.name) || ['value'];
+  }, [props.dataSource, props.staticData]);
+
+  // Pie chart data format
+  const pieData = useMemo(() => {
+    if (props.dataSource === 'dynamic') {
+      return [
+        { name: 'Sample 1', value: 100 },
+        { name: 'Sample 2', value: 150 },
+        { name: 'Sample 3', value: 120 },
+      ];
+    }
+
+    const staticData = props.staticData;
+    if (!staticData) return [];
+
+    return staticData.labels.map((label, index) => ({
+      name: label,
+      value: staticData.datasets[0]?.values[index] || 0,
+    }));
+  }, [props.dataSource, props.staticData]);
+
+  const renderChart = () => {
+    if (chartType === 'pie' || chartType === 'doughnut') {
+      return (
+        <PieChart width={width} height={height}>
+          <Pie
+            data={pieData}
+            cx="50%"
+            cy="50%"
+            innerRadius={chartType === 'doughnut' ? 60 : 0}
+            outerRadius={80}
+            dataKey="value"
+            label
+          >
+            {pieData.map((_, index) => (
+              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            ))}
+          </Pie>
+          {showLegend && <Legend />}
+          <Tooltip />
+        </PieChart>
+      );
+    }
+
+    if (chartType === 'line') {
+      return (
+        <LineChart width={width} height={height} data={chartData}>
+          {showGridLines && <CartesianGrid strokeDasharray="3 3" />}
+          <XAxis dataKey="name" label={props.axisLabels?.x ? { value: props.axisLabels.x, position: 'bottom' } : undefined} />
+          <YAxis label={props.axisLabels?.y ? { value: props.axisLabels.y, angle: -90, position: 'insideLeft' } : undefined} />
+          <Tooltip />
+          {showLegend && <Legend />}
+          {datasetNames.map((name, index) => (
+            <Line key={name} type="monotone" dataKey={name} stroke={colors[index % colors.length]} strokeWidth={2} />
+          ))}
+        </LineChart>
+      );
+    }
+
+    if (chartType === 'area') {
+      return (
+        <AreaChart width={width} height={height} data={chartData}>
+          {showGridLines && <CartesianGrid strokeDasharray="3 3" />}
+          <XAxis dataKey="name" label={props.axisLabels?.x ? { value: props.axisLabels.x, position: 'bottom' } : undefined} />
+          <YAxis label={props.axisLabels?.y ? { value: props.axisLabels.y, angle: -90, position: 'insideLeft' } : undefined} />
+          <Tooltip />
+          {showLegend && <Legend />}
+          {datasetNames.map((name, index) => (
+            <Area key={name} type="monotone" dataKey={name} fill={colors[index % colors.length]} stroke={colors[index % colors.length]} fillOpacity={0.3} />
+          ))}
+        </AreaChart>
+      );
+    }
+
+    // Default: Bar chart
+    return (
+      <BarChart width={width} height={height} data={chartData}>
+        {showGridLines && <CartesianGrid strokeDasharray="3 3" />}
+        <XAxis dataKey="name" label={props.axisLabels?.x ? { value: props.axisLabels.x, position: 'bottom' } : undefined} />
+        <YAxis label={props.axisLabels?.y ? { value: props.axisLabels.y, angle: -90, position: 'insideLeft' } : undefined} />
+        <Tooltip />
+        {showLegend && <Legend />}
+        {datasetNames.map((name, index) => (
+          <Bar key={name} dataKey={name} fill={colors[index % colors.length]} />
+        ))}
+      </BarChart>
+    );
+  };
+
+  return (
+    <div style={{ padding: formatPadding(style?.padding) }}>
+      {props.title && (
+        <h3 style={{ textAlign: 'center', marginBottom: '16px', fontSize: '16px', fontWeight: 600 }}>
+          {props.title}
+        </h3>
+      )}
+      {/* Key forces React to unmount/remount when chart type changes - fixes Recharts stale rendering */}
+      <div key={chartType} style={{ display: 'flex', justifyContent: 'center' }}>
+        {renderChart()}
+      </div>
+      {props.dataSource === 'dynamic' && (
+        <div
+          style={{
+            textAlign: 'center',
+            marginTop: '8px',
+            padding: '8px',
+            backgroundColor: '#f0f9ff',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#0369a1',
+          }}
+        >
+          Dynamic data: {`{{${props.dynamicVariable || 'chartData'}}}`}
+        </div>
       )}
     </div>
   );

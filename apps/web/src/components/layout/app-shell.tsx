@@ -11,7 +11,6 @@ import {
   ScrollText,
   ChevronLeft,
   ChevronRight,
-  Bell,
   Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -36,11 +35,9 @@ const mainNavigation = [
   { name: 'Webhooks', href: '/webhooks', icon: Webhook },
 ];
 
-const settingsNavigation = [{ name: 'Settings', href: '/settings', icon: Settings }];
-
 const pageInfo: Record<string, { title: string; subtitle: string }> = {
   '/': { title: 'Dashboard', subtitle: 'Real-time insights and performance overview' },
-  '/templates': { title: 'Templates', subtitle: 'Manage your email templates' },
+  '/templates': { title: 'Templates', subtitle: 'Manage your email and PDF templates' },
   '/adapters': { title: 'Adapters', subtitle: 'Configure email service providers' },
   '/logs': { title: 'Email Logs', subtitle: 'Track sent emails and delivery status' },
   '/api-keys': { title: 'API Keys', subtitle: 'Manage API access credentials' },
@@ -121,8 +118,8 @@ export function AppShell({ children }: AppShellProps) {
           )}
         >
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-bold text-sm">C</span>
+            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+              <Mail className="h-4 w-4 text-white" />
             </div>
             {sidebarOpen && (
               <span className="font-semibold text-lg text-gray-900 tracking-tight">Canary</span>
@@ -141,77 +138,49 @@ export function AppShell({ children }: AppShellProps) {
           )}
         </button>
 
-        <nav className="flex-1 p-3 space-y-6 overflow-y-auto">
-          <div>
-            {sidebarOpen && (
-              <h3 className="px-3 mb-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                Main Menu
-              </h3>
-            )}
-            <div className="space-y-1">
-              {mainNavigation.map((item) => (
-                <NavLink key={item.name} item={item} />
-              ))}
-            </div>
-          </div>
-
-          <div>
-            {sidebarOpen && (
-              <h3 className="px-3 mb-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                Settings
-              </h3>
-            )}
-            <div className="space-y-1">
-              {settingsNavigation.map((item) => (
-                <NavLink key={item.name} item={item} />
-              ))}
-            </div>
+        <nav className="flex-1 p-3 overflow-y-auto">
+          {sidebarOpen && (
+            <h3 className="px-3 mb-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              Main Menu
+            </h3>
+          )}
+          <div className="space-y-1">
+            {mainNavigation.map((item) => (
+              <NavLink key={item.name} item={item} />
+            ))}
           </div>
         </nav>
 
-        <div className={cn('border-t border-gray-200', sidebarOpen ? 'p-3' : 'p-2')}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className={cn(
-                  'w-full gap-2 hover:bg-gray-50',
-                  sidebarOpen ? 'justify-start px-2' : 'justify-center px-0'
-                )}
-              >
-                <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={user?.avatarUrl || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white text-xs font-medium">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                {sidebarOpen && (
-                  <div className="flex flex-col items-start text-left overflow-hidden">
-                    <span className="text-sm font-medium text-gray-900 truncate w-full">
-                      {user?.name || 'User'}
-                    </span>
-                    <span className="text-xs text-gray-500 truncate w-full">{user?.email}</span>
-                  </div>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{user?.name || 'User'}</p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={logout}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className={cn('border-t border-gray-200 p-3 space-y-1')}>
+          <Link
+            to="/settings"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+              location.pathname === '/settings'
+                ? 'bg-gray-100 text-gray-900'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            )}
+            title={!sidebarOpen ? 'Settings' : undefined}
+          >
+            <Settings
+              className={cn(
+                'h-[18px] w-[18px] flex-shrink-0',
+                location.pathname === '/settings' ? 'text-gray-900' : 'text-gray-500'
+              )}
+            />
+            {sidebarOpen && <span>Settings</span>}
+          </Link>
+          <button
+            onClick={logout}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full',
+              'text-red-600 hover:bg-red-50'
+            )}
+            title={!sidebarOpen ? 'Log out' : undefined}
+          >
+            <LogOut className="h-[18px] w-[18px] flex-shrink-0" />
+            {sidebarOpen && <span>Log out</span>}
+          </button>
         </div>
       </aside>
 
@@ -221,25 +190,7 @@ export function AppShell({ children }: AppShellProps) {
             <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
             <p className="text-sm text-gray-500">{subtitle}</p>
           </div>
-
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-            >
-              <Bell className="h-[18px] w-[18px]" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-            >
-              <Mail className="h-[18px] w-[18px]" />
-            </Button>
-
-            <div className="w-px h-6 bg-gray-200 mx-2" />
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-3 px-2 hover:bg-gray-100">
@@ -281,17 +232,6 @@ export function AppShell({ children }: AppShellProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
-              className="h-9 w-9 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-            >
-              <Link to="/settings">
-                <Settings className="h-[18px] w-[18px]" />
-              </Link>
-            </Button>
           </div>
         </header>
 

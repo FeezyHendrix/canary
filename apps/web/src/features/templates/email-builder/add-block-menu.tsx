@@ -127,25 +127,27 @@ export function AddBlockMenuColumn({
   if (placeholder) {
     return (
       <div className="flex flex-col items-center justify-center py-8 px-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsOpen(!isOpen);
-          }}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 transition-colors"
-        >
-          <Plus className="h-3 w-3" />
-          Add
-        </button>
-        {isOpen && (
-          <div className="absolute top-full mt-2 z-20">
-            <BlockPicker
-              onSelect={handleAddBlock}
-              onSelectPreset={handleAddPreset}
-              onClose={() => setIsOpen(false)}
-            />
-          </div>
-        )}
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(!isOpen);
+            }}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-muted text-muted-foreground rounded hover:bg-muted/80 transition-colors"
+          >
+            <Plus className="h-3 w-3" />
+            Add
+          </button>
+          {isOpen && (
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-20">
+              <BlockPicker
+                onSelect={handleAddBlock}
+                onSelectPreset={handleAddPreset}
+                onClose={() => setIsOpen(false)}
+              />
+            </div>
+          )}
+        </div>
       </div>
     );
   }

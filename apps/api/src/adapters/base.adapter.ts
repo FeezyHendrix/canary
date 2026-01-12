@@ -12,6 +12,7 @@ export interface SendEmailOptions {
     filename: string;
     content: Buffer | string;
     contentType?: string;
+    cid?: string; // Content-ID for inline images
   }>;
   tags?: string[];
   metadata?: Record<string, string>;

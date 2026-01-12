@@ -44,7 +44,7 @@ export function TemplateDesigner() {
 
   const [name, setName] = useState('');
   const [subject, setSubject] = useState('');
-  const [designJson, setDesignJson] = useState<EditorDocument>(DEFAULT_DESIGN);
+  const [designJson, setDesignJson] = useState<EditorDocument | null>(null);
   const [generatePdf, setGeneratePdf] = useState(isPdfTemplate);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [currentTemplateId, setCurrentTemplateId] = useState<string | undefined>(id);
@@ -53,15 +53,19 @@ export function TemplateDesigner() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showSaveVersion, setShowSaveVersion] = useState(false);
   const [versionName, setVersionName] = useState('');
+  // Track which template ID we've loaded data for
+  const [loadedTemplateId, setLoadedTemplateId] = useState<string | null>(null);
 
   const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const designJsonRef = useRef<EditorDocument>(DEFAULT_DESIGN);
-  const isInitialLoad = useRef(true);
+  // Store mutation function in ref to avoid recreating triggerAutosave on every render
+  const autosaveMutateRef = useRef<typeof autosaveMutation.mutate | null>(null);
 
-  const { data: templateData, isLoading } = useQuery({
+  const { data: templateData, isLoading, isFetching } = useQuery({
     queryKey: ['template', id],
     queryFn: () => api.get<{ success: boolean; data: Template }>(`/api/templates/${id}`),
     enabled: !!id,
+    staleTime: 0, // Always refetch to get latest data
   });
 
   const { data: versionsData, refetch: refetchVersions } = useQuery({
@@ -73,8 +77,32 @@ export function TemplateDesigner() {
     enabled: !!currentTemplateId && showVersionHistory,
   });
 
+  // Reset state when template ID changes
   useEffect(() => {
-    if (templateData?.data) {
+    // Don't reset if we're on a new template page with initialized data
+    // This prevents an infinite loop between the reset and initialization effects
+    if (loadedTemplateId === 'new' && !id) {
+      return;
+    }
+    if (id !== loadedTemplateId) {
+      // Reset to loading state when navigating to a different template
+      setDesignJson(null);
+      setLoadedTemplateId(null);
+    }
+  }, [id, loadedTemplateId]);
+
+  // Initialize for new templates
+  useEffect(() => {
+    if (isNew && designJson === null) {
+      setDesignJson(DEFAULT_DESIGN);
+      designJsonRef.current = DEFAULT_DESIGN;
+      setLoadedTemplateId('new');
+    }
+  }, [isNew, designJson]);
+
+  // Load data for existing templates
+  useEffect(() => {
+    if (id && templateData?.data && loadedTemplateId !== id) {
       const template = templateData.data;
       setName(template.name);
       setSubject(template.subject);
@@ -83,9 +111,9 @@ export function TemplateDesigner() {
       designJsonRef.current = loadedDesign;
       setGeneratePdf(template.generatePdf ?? isPdfTemplate);
       setCurrentTemplateId(template.id);
-      isInitialLoad.current = false;
+      setLoadedTemplateId(id);
     }
-  }, [templateData, isPdfTemplate]);
+  }, [id, templateData, isPdfTemplate, loadedTemplateId]);
 
   const autosaveMutation = useMutation({
     mutationFn: async (data: { designJson: EditorDocument }) => {
@@ -103,8 +131,12 @@ export function TemplateDesigner() {
     },
   });
 
+  // Keep mutation ref updated
+  autosaveMutateRef.current = autosaveMutation.mutate;
+
   const triggerAutosave = useCallback(() => {
-    if (!currentTemplateId || isInitialLoad.current) return;
+    // Only autosave if we have a template ID and data is fully loaded
+    if (!currentTemplateId || !loadedTemplateId || designJson === null) return;
 
     if (autosaveTimeoutRef.current) {
       clearTimeout(autosaveTimeoutRef.current);
@@ -112,9 +144,9 @@ export function TemplateDesigner() {
 
     autosaveTimeoutRef.current = setTimeout(() => {
       setSaveStatus('saving');
-      autosaveMutation.mutate({ designJson: designJsonRef.current });
+      autosaveMutateRef.current?.({ designJson: designJsonRef.current });
     }, AUTOSAVE_DELAY);
-  }, [currentTemplateId, autosaveMutation]);
+  }, [currentTemplateId, loadedTemplateId, designJson]);
 
   const handleDocumentChange = useCallback(
     (doc: EditorDocument) => {
@@ -145,7 +177,6 @@ export function TemplateDesigner() {
       toast({ title: !currentTemplateId ? 'Template created' : 'Template saved' });
       if (!currentTemplateId && response.data?.id) {
         setCurrentTemplateId(response.data.id);
-        isInitialLoad.current = false;
         navigate(`/templates/${response.data.id}`, { replace: true });
       }
       setSaveStatus('saved');
@@ -244,7 +275,9 @@ export function TemplateDesigner() {
     };
   }, []);
 
-  if (!isNew && (isLoading || !templateData?.data)) {
+  // Wait for data to be fully loaded before rendering EmailEditor
+  // designJson is null until data is loaded, then it's set to the actual design
+  if (designJson === null || isLoading || isFetching) {
     return (
       <div className="flex h-96 items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -331,7 +364,12 @@ export function TemplateDesigner() {
         </div>
       </div>
 
-      <EmailEditor initialDocument={designJson} onChange={handleDocumentChange} />
+      <EmailEditor
+        key={loadedTemplateId || 'new'}
+        initialDocument={designJson}
+        onChange={handleDocumentChange}
+        isPdf={generatePdf}
+      />
 
       {showTestSend && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

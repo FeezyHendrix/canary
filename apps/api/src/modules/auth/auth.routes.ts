@@ -75,11 +75,11 @@ export async function authRoutes(app: FastifyInstance) {
       const user = await findOrCreateUser(profile);
       const sessionId = await createSession(user.id);
 
-      const isLocalhost = env.APP_URL.includes('localhost');
+      const isProduction = env.NODE_ENV === 'production';
       reply.setCookie('session', sessionId, {
         httpOnly: true,
-        secure: !isLocalhost,
-        sameSite: isLocalhost ? 'none' : 'lax',
+        secure: isProduction,
+        sameSite: 'lax',
         path: '/',
         maxAge: 30 * 24 * 60 * 60,
       });
@@ -113,11 +113,11 @@ export async function authRoutes(app: FastifyInstance) {
       const user = await findOrCreateUser(profile);
       const sessionId = await createSession(user.id);
 
-      const isLocalhost = env.APP_URL.includes('localhost');
+      const isProduction = env.NODE_ENV === 'production';
       reply.setCookie('session', sessionId, {
         httpOnly: true,
-        secure: !isLocalhost,
-        sameSite: isLocalhost ? 'none' : 'lax',
+        secure: isProduction,
+        sameSite: 'lax',
         path: '/',
         maxAge: 30 * 24 * 60 * 60,
       });

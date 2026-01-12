@@ -89,6 +89,7 @@ export class SMTPAdapter extends BaseEmailAdapter {
           filename: a.filename,
           content: typeof a.content === 'string' ? Buffer.from(a.content, 'base64') : a.content,
           contentType: a.contentType,
+          cid: a.cid, // For inline images (e.g., charts)
         })),
       });
 

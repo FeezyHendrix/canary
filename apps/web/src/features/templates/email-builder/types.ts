@@ -20,7 +20,8 @@ export type BlockType =
   | 'Container'
   | 'ColumnsContainer'
   | 'Avatar'
-  | 'Html';
+  | 'Html'
+  | 'Chart';
 
 export type FontFamily =
   | 'MODERN_SANS'
@@ -86,6 +87,25 @@ export interface AvatarBlockProps {
 
 export interface HtmlBlockProps {
   contents: string;
+}
+
+export interface ChartBlockProps {
+  chartType: 'bar' | 'line' | 'pie' | 'doughnut' | 'area';
+  title?: string;
+  dataSource: 'static' | 'dynamic';
+  staticData?: {
+    labels: string[];
+    datasets: Array<{ name: string; values: number[] }>;
+  };
+  dynamicVariable?: string;
+  colors: string[];
+  showLegend: boolean;
+  legendPosition: 'top' | 'bottom' | 'left' | 'right';
+  showGridLines: boolean;
+  axisLabels?: { x?: string; y?: string };
+  width: number;
+  height: number;
+  prerenderedImageUrl?: string;
 }
 
 export interface BlockStyle {

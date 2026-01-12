@@ -50,6 +50,7 @@ export async function listTemplates(teamId: string, params: ListTemplatesInput) 
       subject: t.subject,
       thumbnailUrl: t.thumbnailUrl,
       isActive: t.isActive,
+      generatePdf: t.generatePdf,
       updatedAt: t.updatedAt,
       variables: t.variables || [],
     })),
@@ -301,9 +302,40 @@ function extractVariablesFromDesign(designJson: Record<string, unknown>): string
   return extractVariables(jsonStr);
 }
 
+/**
+ * Transform Chart blocks to placeholder Image blocks for email-builder compatibility.
+ * The actual chart rendering happens at send time via the email processor.
+ */
+function transformChartBlocksForCompile(designJson: Record<string, unknown>): Record<string, unknown> {
+  const transformed = JSON.parse(JSON.stringify(designJson)); // Deep clone
+
+  for (const [key, block] of Object.entries(transformed)) {
+    if (block && typeof block === 'object' && (block as Record<string, unknown>).type === 'Chart') {
+      const chartBlock = block as Record<string, unknown>;
+      const data = chartBlock.data as Record<string, unknown>;
+      const props = data?.props as Record<string, unknown>;
+
+      // Convert Chart to Html block with a placeholder
+      transformed[key] = {
+        type: 'Html',
+        data: {
+          style: data?.style || {},
+          props: {
+            contents: `<div style="width:${props?.width || 500}px;height:${props?.height || 300}px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#6b7280;font-family:sans-serif;" data-block-type="Chart" data-block-id="${key}"><span style="font-size:14px;">📊 Chart: ${props?.title || (props?.dataSource === 'dynamic' ? `{{${props?.dynamicVariable || 'chartData'}}}` : 'Static Chart')}</span></div>`,
+          },
+        },
+      };
+    }
+  }
+
+  return transformed;
+}
+
 function compileDesignToHtml(designJson: Record<string, unknown>): string {
   try {
-    return renderToStaticMarkup(designJson as TReaderDocument, { rootBlockId: 'root' });
+    // Transform Chart blocks to Html placeholders before rendering
+    const transformedDesign = transformChartBlocksForCompile(designJson);
+    return renderToStaticMarkup(transformedDesign as TReaderDocument, { rootBlockId: 'root' });
   } catch (error) {
     console.error('[templates] Failed to compile design to HTML:', error);
     return '';

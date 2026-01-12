@@ -19,6 +19,7 @@ interface EditorState {
   history: EditorDocument[];
   historyIndex: number;
   clipboard: { block: EditorBlock; childBlocks?: EditorDocument } | null;
+  isPdf: boolean;
 }
 
 interface EditorActions {
@@ -52,6 +53,7 @@ interface EditorActions {
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  setIsPdf: (isPdf: boolean) => void;
 }
 
 const DEFAULT_DOCUMENT: EditorDocument = {
@@ -178,6 +180,7 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
   history: [DEFAULT_DOCUMENT],
   historyIndex: 0,
   clipboard: null,
+  isPdf: false,
 
   setDocument: (doc) => {
     const state = get();
@@ -231,10 +234,15 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
   },
 
   setSelectedBlockId: (id) => {
+    const state = get();
+    // Only change tab if selecting a different block
+    const shouldChangeTab = id !== state.selectedBlockId;
     set({
       selectedBlockId: id,
-      selectedSidebarTab: id ? 'block-configuration' : 'styles',
-      inspectorOpen: id ? true : get().inspectorOpen,
+      selectedSidebarTab: shouldChangeTab
+        ? (id ? 'block-configuration' : 'styles')
+        : state.selectedSidebarTab,
+      inspectorOpen: id ? true : state.inspectorOpen,
     });
   },
 
@@ -627,6 +635,7 @@ export const useEditorStore = create<EditorState & EditorActions>((set, get) => 
 
   canUndo: () => get().historyIndex > 0,
   canRedo: () => get().historyIndex < get().history.length - 1,
+  setIsPdf: (isPdf) => set({ isPdf }),
 }));
 
 export const useDocument = () => useEditorStore((s) => s.document);
