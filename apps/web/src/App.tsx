@@ -16,6 +16,7 @@ import { EmailLogs } from './features/logs/email-logs';
 import { ApiKeysList } from './features/api-keys/api-keys-list';
 import { WebhooksList } from './features/webhooks/webhooks-list';
 import { TeamSettings } from './features/settings/team-settings';
+import { BillingPage } from './features/settings/billing-page';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -59,6 +60,7 @@ function AppRoutes() {
                 <Route path="/api-keys" element={<ApiKeysList />} />
                 <Route path="/webhooks" element={<WebhooksList />} />
                 <Route path="/settings" element={<TeamSettings />} />
+                <Route path="/billing" element={<BillingPage />} />
               </Routes>
             </AppShell>
           </ProtectedRoute>

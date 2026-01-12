@@ -14,6 +14,8 @@ import { apiKeysRoutes } from './modules/api-keys/api-keys.routes';
 import { webhooksRoutes } from './modules/webhooks/webhooks.routes';
 import { teamsRoutes } from './modules/teams/teams.routes';
 import { uploadsRoutes } from './modules/uploads/uploads.routes';
+import { billingRoutes } from './modules/billing/billing.routes';
+import { polarWebhookRoutes } from './modules/billing/polar-webhook.routes';
 
 export async function buildApp() {
   const app = Fastify({
@@ -111,6 +113,8 @@ export async function buildApp() {
   await app.register(webhooksRoutes, { prefix: '/api/webhooks' });
   await app.register(teamsRoutes, { prefix: '/api/teams' });
   await app.register(uploadsRoutes, { prefix: '/api/uploads' });
+  await app.register(billingRoutes, { prefix: '/api/billing' });
+  await app.register(polarWebhookRoutes, { prefix: '/api/webhooks/polar' });
 
   return app;
 }

@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { UserPlus, X, Trash2, Loader2 } from 'lucide-react';
 import { TEAM_ROLE_LABELS, type TeamRole } from '@canary/shared';
 import { toast } from '@/components/ui/toaster';
+import { useSubscription } from '@/hooks/use-subscription';
+import { UpgradeModal } from '@/components/upgrade-modal';
 
 interface TeamMember {
   id: string;
@@ -36,6 +38,8 @@ export function TeamSettings() {
   const { user, currentTeam } = useAuth();
   const queryClient = useQueryClient();
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { limits, canAddTeamMember } = useSubscription();
 
   const { data: membersData, isLoading } = useQuery({
     queryKey: ['team-members', currentTeam?.teamId],
@@ -82,6 +86,16 @@ export function TeamSettings() {
   const members = membersData?.data || [];
   const pendingInvites = invitesData?.data || [];
   const isOwnerOrAdmin = currentTeam?.role === 'owner' || currentTeam?.role === 'admin';
+  const memberCount = members.length;
+  const atMemberLimit = !canAddTeamMember(memberCount);
+
+  const handleInviteClick = () => {
+    if (atMemberLimit) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setShowInviteModal(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -118,10 +132,15 @@ export function TeamSettings() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Team Members</CardTitle>
-            <CardDescription>People who have access to this team</CardDescription>
+            <CardDescription>
+              People who have access to this team
+              <span className="ml-2 text-xs">
+                ({memberCount}/{limits.maxTeamMembers} members)
+              </span>
+            </CardDescription>
           </div>
           {isOwnerOrAdmin && (
-            <Button onClick={() => setShowInviteModal(true)}>
+            <Button onClick={handleInviteClick}>
               <UserPlus className="mr-2 h-4 w-4" />
               Invite Member
             </Button>
@@ -220,6 +239,12 @@ export function TeamSettings() {
       {showInviteModal && (
         <InviteModal teamId={currentTeam?.teamId || ''} onClose={() => setShowInviteModal(false)} />
       )}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="team_members"
+        currentUsage={memberCount}
+      />
     </div>
   );
 }

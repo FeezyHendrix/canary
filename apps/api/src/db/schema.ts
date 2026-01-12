@@ -33,6 +33,15 @@ export const emailStatusEnum = pgEnum('email_status', [
 
 export const teamRoleEnum = pgEnum('team_role', ['owner', 'admin', 'member', 'viewer']);
 
+export const subscriptionPlanEnum = pgEnum('subscription_plan', ['free', 'pro', 'team']);
+
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'active',
+  'canceled',
+  'past_due',
+  'incomplete',
+]);
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: text('email').notNull().unique(),
@@ -55,6 +64,22 @@ export const teams = pgTable('teams', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const subscriptions = pgTable('subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  teamId: uuid('team_id')
+    .references(() => teams.id, { onDelete: 'cascade' })
+    .notNull()
+    .unique(),
+  polarCustomerId: text('polar_customer_id'),
+  polarSubscriptionId: text('polar_subscription_id'),
+  plan: subscriptionPlanEnum('plan').notNull().default('free'),
+  status: subscriptionStatusEnum('status').notNull().default('active'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -241,13 +266,24 @@ export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
 }));
 
-export const teamsRelations = relations(teams, ({ many }) => ({
+export const teamsRelations = relations(teams, ({ one, many }) => ({
   members: many(teamMembers),
   templates: many(templates),
   adapters: many(adapters),
   apiKeys: many(apiKeys),
   webhooks: many(webhooks),
   emailLogs: many(emailLogs),
+  subscription: one(subscriptions, {
+    fields: [teams.id],
+    references: [subscriptions.teamId],
+  }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  team: one(teams, {
+    fields: [subscriptions.teamId],
+    references: [teams.id],
+  }),
 }));
 
 export const teamMembersRelations = relations(teamMembers, ({ one }) => ({

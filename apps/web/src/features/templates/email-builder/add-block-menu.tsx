@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Lock } from 'lucide-react';
 import {
   BLOCK_TEMPLATES,
   PRESET_TEMPLATES,
@@ -7,6 +7,8 @@ import {
   PresetTemplate,
 } from './block-templates';
 import { useEditorStore } from './editor-context';
+import { useSubscription, isPremiumBlock } from '@/hooks/use-subscription';
+import { UpgradeModal } from '@/components/upgrade-modal';
 
 interface AddBlockMenuProps {
   parentId: string;
@@ -187,6 +189,16 @@ interface BlockPickerProps {
 
 function BlockPicker({ onSelect, onSelectPreset, onClose }: BlockPickerProps) {
   const [tab, setTab] = useState<'blocks' | 'presets'>('blocks');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { canUsePremiumBlocks } = useSubscription();
+
+  const handleBlockClick = (template: BlockTemplate) => {
+    if (isPremiumBlock(template.type) && !canUsePremiumBlocks) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    onSelect(template);
+  };
 
   return (
     <>
@@ -217,16 +229,27 @@ function BlockPicker({ onSelect, onSelectPreset, onClose }: BlockPickerProps) {
         <div className="p-2">
           {tab === 'blocks' ? (
             <div className="grid grid-cols-3 gap-1">
-              {BLOCK_TEMPLATES.map((template) => (
-                <button
-                  key={template.type}
-                  onClick={() => onSelect(template)}
-                  className="flex flex-col items-center gap-1 p-3 rounded-md hover:bg-muted transition-colors text-center"
-                >
-                  <span className="text-lg font-mono">{template.icon}</span>
-                  <span className="text-xs text-muted-foreground">{template.label}</span>
-                </button>
-              ))}
+              {BLOCK_TEMPLATES.map((template) => {
+                const isPremium = isPremiumBlock(template.type);
+                const isLocked = isPremium && !canUsePremiumBlocks;
+                return (
+                  <button
+                    key={template.type}
+                    onClick={() => handleBlockClick(template)}
+                    className={`relative flex flex-col items-center gap-1 p-3 rounded-md transition-colors text-center ${
+                      isLocked
+                        ? 'hover:bg-muted/50 opacity-75'
+                        : 'hover:bg-muted'
+                    }`}
+                  >
+                    <span className="text-lg font-mono">{template.icon}</span>
+                    <span className="text-xs text-muted-foreground">{template.label}</span>
+                    {isLocked && (
+                      <Lock className="absolute top-1 right-1 h-3 w-3 text-muted-foreground" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
@@ -245,6 +268,11 @@ function BlockPicker({ onSelect, onSelectPreset, onClose }: BlockPickerProps) {
           )}
         </div>
       </div>
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="premium_blocks"
+      />
     </>
   );
 }

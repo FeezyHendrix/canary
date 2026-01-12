@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, MoreVertical, Copy, Trash2, Edit, Mail, FileText } from 'lucide-react';
 import { api } from '@/lib/api-client';
@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import { useSubscription } from '@/hooks/use-subscription';
+import { UpgradeModal } from '@/components/upgrade-modal';
 import type { TemplateListItem, PaginatedResponse } from '@canary/shared';
 
 type TemplateType = 'email' | 'pdf';
@@ -21,6 +23,9 @@ type TemplateType = 'email' | 'pdf';
 export function TemplatesList() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TemplateType>('email');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const navigate = useNavigate();
+  const { limits, canCreateTemplate } = useSubscription();
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['templates', search, activeTab],
@@ -60,19 +65,34 @@ export function TemplatesList() {
   };
 
   const isEmail = activeTab === 'email';
+  const templateCount = allTemplates.length;
+  const atLimit = !canCreateTemplate(templateCount);
+
+  const handleNewTemplate = () => {
+    if (atLimit) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    navigate(isEmail ? '/templates/new' : '/templates/new?type=pdf');
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Templates</h1>
-          <p className="text-muted-foreground">Create and manage your templates</p>
+          <p className="text-muted-foreground">
+            Create and manage your templates
+            {limits.maxTemplates && (
+              <span className="ml-2 text-xs">
+                ({templateCount}/{limits.maxTemplates} used)
+              </span>
+            )}
+          </p>
         </div>
-        <Button asChild>
-          <Link to={isEmail ? '/templates/new' : '/templates/new?type=pdf'}>
-            <Plus className="mr-2 h-4 w-4" />
-            New {isEmail ? 'Email' : 'PDF'} Template
-          </Link>
+        <Button onClick={handleNewTemplate}>
+          <Plus className="mr-2 h-4 w-4" />
+          New {isEmail ? 'Email' : 'PDF'} Template
         </Button>
       </div>
 
@@ -196,6 +216,12 @@ export function TemplatesList() {
           ))}
         </div>
       )}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="templates"
+        currentUsage={templateCount}
+      />
     </div>
   );
 }

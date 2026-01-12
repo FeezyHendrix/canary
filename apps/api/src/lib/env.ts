@@ -28,6 +28,14 @@ const envSchema = z.object({
     .transform((val) => val === 'true')
     .default('true'),
   WORKER_CONCURRENCY: z.coerce.number().default(5),
+  // Polar.sh Billing
+  POLAR_ACCESS_TOKEN: z.string().optional(),
+  POLAR_WEBHOOK_SECRET: z.string().optional(),
+  POLAR_ORGANIZATION_ID: z.string().optional(),
+  POLAR_PRO_MONTHLY_PRICE_ID: z.string().optional(),
+  POLAR_PRO_ANNUAL_PRICE_ID: z.string().optional(),
+  POLAR_TEAM_MONTHLY_PRICE_ID: z.string().optional(),
+  POLAR_TEAM_ANNUAL_PRICE_ID: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

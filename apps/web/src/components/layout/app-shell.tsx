@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Mail,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/auth-context';
@@ -43,6 +44,7 @@ const pageInfo: Record<string, { title: string; subtitle: string }> = {
   '/api-keys': { title: 'API Keys', subtitle: 'Manage API access credentials' },
   '/webhooks': { title: 'Webhooks', subtitle: 'Configure event notifications' },
   '/settings': { title: 'Settings', subtitle: 'Team and account preferences' },
+  '/billing': { title: 'Billing', subtitle: 'Manage your subscription and plan' },
 };
 
 function getPageInfo(pathname: string): { title: string; subtitle: string } {
@@ -169,6 +171,24 @@ export function AppShell({ children }: AppShellProps) {
               )}
             />
             {sidebarOpen && <span>Settings</span>}
+          </Link>
+          <Link
+            to="/billing"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+              location.pathname === '/billing'
+                ? 'bg-gray-100 text-gray-900'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            )}
+            title={!sidebarOpen ? 'Billing' : undefined}
+          >
+            <CreditCard
+              className={cn(
+                'h-[18px] w-[18px] flex-shrink-0',
+                location.pathname === '/billing' ? 'text-gray-900' : 'text-gray-500'
+              )}
+            />
+            {sidebarOpen && <span>Billing</span>}
           </Link>
           <button
             onClick={logout}
