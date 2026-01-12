@@ -303,29 +303,85 @@ function extractVariablesFromDesign(designJson: Record<string, unknown>): string
 }
 
 /**
- * Transform Chart blocks to placeholder Image blocks for email-builder compatibility.
- * The actual chart rendering happens at send time via the email processor.
+ * Custom block types that aren't natively supported by @usewaypoint/email-builder.
+ * These need to be transformed to Html blocks before rendering.
  */
-function transformChartBlocksForCompile(designJson: Record<string, unknown>): Record<string, unknown> {
+const CUSTOM_BLOCK_TYPES = ['Chart', 'Video', 'SocialIcons', 'Quote', 'List', 'Table', 'Code', 'Badge', 'Icon'];
+
+/**
+ * Transform custom blocks to Html placeholders for email-builder compatibility.
+ * The actual rendering of complex blocks (like Chart) happens at send time.
+ */
+function transformCustomBlocksForCompile(designJson: Record<string, unknown>): Record<string, unknown> {
   const transformed = JSON.parse(JSON.stringify(designJson)); // Deep clone
 
   for (const [key, block] of Object.entries(transformed)) {
-    if (block && typeof block === 'object' && (block as Record<string, unknown>).type === 'Chart') {
-      const chartBlock = block as Record<string, unknown>;
-      const data = chartBlock.data as Record<string, unknown>;
-      const props = data?.props as Record<string, unknown>;
+    if (!block || typeof block !== 'object') continue;
 
-      // Convert Chart to Html block with a placeholder
-      transformed[key] = {
-        type: 'Html',
-        data: {
-          style: data?.style || {},
-          props: {
-            contents: `<div style="width:${props?.width || 500}px;height:${props?.height || 300}px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#6b7280;font-family:sans-serif;" data-block-type="Chart" data-block-id="${key}"><span style="font-size:14px;">📊 Chart: ${props?.title || (props?.dataSource === 'dynamic' ? `{{${props?.dynamicVariable || 'chartData'}}}` : 'Static Chart')}</span></div>`,
-          },
-        },
-      };
+    const blockType = (block as Record<string, unknown>).type as string;
+    if (!CUSTOM_BLOCK_TYPES.includes(blockType)) continue;
+
+    const data = (block as Record<string, unknown>).data as Record<string, unknown>;
+    const props = (data?.props || {}) as Record<string, unknown>;
+    const style = (data?.style || {}) as Record<string, unknown>;
+
+    let htmlContent = '';
+
+    switch (blockType) {
+      case 'Chart':
+        htmlContent = `<div style="width:${props?.width || 500}px;height:${props?.height || 300}px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#6b7280;font-family:sans-serif;" data-block-type="Chart" data-block-id="${key}"><span style="font-size:14px;">📊 Chart: ${props?.title || (props?.dataSource === 'dynamic' ? `{{${props?.dynamicVariable || 'chartData'}}}` : 'Static Chart')}</span></div>`;
+        break;
+      case 'Video':
+        htmlContent = `<div style="text-align:center;padding:16px;"><a href="${props?.url || '#'}" style="display:inline-block;padding:12px 24px;background:#3b82f6;color:white;text-decoration:none;border-radius:6px;">▶ Watch Video</a></div>`;
+        break;
+      case 'SocialIcons': {
+        const platforms = (props?.platforms || []) as Array<{ platform: string; url: string }>;
+        const iconsHtml = platforms.map(p =>
+          `<a href="${p.url}" style="margin:0 8px;color:#6b7280;text-decoration:none;">${p.platform}</a>`
+        ).join('');
+        htmlContent = `<div style="text-align:center;padding:16px;">${iconsHtml || 'Social Icons'}</div>`;
+        break;
+      }
+      case 'Quote':
+        htmlContent = `<blockquote style="border-left:4px solid #e5e7eb;padding-left:16px;margin:16px 0;font-style:italic;color:#4b5563;">${props?.text || 'Quote'}<footer style="margin-top:8px;font-size:14px;color:#6b7280;">— ${props?.author || 'Author'}</footer></blockquote>`;
+        break;
+      case 'List': {
+        const items = (props?.items || ['Item 1', 'Item 2']) as string[];
+        const listType = props?.listType === 'ordered' ? 'ol' : 'ul';
+        const listItems = items.map(item => `<li style="margin:4px 0;">${item}</li>`).join('');
+        htmlContent = `<${listType} style="padding-left:24px;margin:16px 0;">${listItems}</${listType}>`;
+        break;
+      }
+      case 'Table': {
+        const rows = (props?.rows || [['Cell 1', 'Cell 2']]) as string[][];
+        const tableRows = rows.map(row =>
+          `<tr>${row.map(cell => `<td style="border:1px solid #e5e7eb;padding:8px;">${cell}</td>`).join('')}</tr>`
+        ).join('');
+        htmlContent = `<table style="width:100%;border-collapse:collapse;margin:16px 0;"><tbody>${tableRows}</tbody></table>`;
+        break;
+      }
+      case 'Code':
+        htmlContent = `<pre style="background:#1f2937;color:#f3f4f6;padding:16px;border-radius:8px;overflow-x:auto;font-family:monospace;font-size:14px;"><code>${props?.code || '// Code block'}</code></pre>`;
+        break;
+      case 'Badge':
+        htmlContent = `<span style="display:inline-block;padding:4px 12px;background:${props?.backgroundColor || '#3b82f6'};color:${props?.textColor || 'white'};border-radius:9999px;font-size:14px;font-weight:500;">${props?.text || 'Badge'}</span>`;
+        break;
+      case 'Icon':
+        htmlContent = `<span style="font-size:${props?.size || 24}px;color:${props?.color || '#6b7280'};">${props?.name || '⭐'}</span>`;
+        break;
+      default:
+        htmlContent = `<div style="padding:16px;background:#f3f4f6;border-radius:8px;color:#6b7280;">${blockType} Block</div>`;
     }
+
+    transformed[key] = {
+      type: 'Html',
+      data: {
+        style: style,
+        props: {
+          contents: htmlContent,
+        },
+      },
+    };
   }
 
   return transformed;
@@ -333,8 +389,8 @@ function transformChartBlocksForCompile(designJson: Record<string, unknown>): Re
 
 function compileDesignToHtml(designJson: Record<string, unknown>): string {
   try {
-    // Transform Chart blocks to Html placeholders before rendering
-    const transformedDesign = transformChartBlocksForCompile(designJson);
+    // Transform custom blocks to Html placeholders before rendering
+    const transformedDesign = transformCustomBlocksForCompile(designJson);
     return renderToStaticMarkup(transformedDesign as TReaderDocument, { rootBlockId: 'root' });
   } catch (error) {
     console.error('[templates] Failed to compile design to HTML:', error);
