@@ -3,9 +3,7 @@
 Open-source email template designer with a visual drag-and-drop builder. Self-host your email infrastructure with support for multiple email providers.
 
 <p align="center">
-  <a href="https://imgur.com/a/L0ULkBK">
-    <img src="https://i.imgur.com/L0ULkBK.png" alt="Canary Email Editor" width="800">
-  </a>
+  <img src="https://i.imgur.com/QOnf8DS.png" alt="Canary Email Editor" width="800">
 </p>
 
 ## Features
