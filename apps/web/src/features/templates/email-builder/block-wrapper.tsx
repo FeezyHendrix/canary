@@ -4,6 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Trash2, ChevronUp, ChevronDown, GripVertical, Copy } from 'lucide-react';
 import { useEditorStore } from './editor-context';
 import { cn } from '@/lib/utils';
+import { PaddingResizeHandles } from './padding-resize-handles';
 
 interface BlockWrapperProps {
   blockId: string;
@@ -39,14 +40,17 @@ export function BlockWrapper({ blockId, parentId, children }: BlockWrapperProps)
       {children}
 
       {isSelected && (
-        <BlockToolbar
-          blockId={blockId}
-          parentId={parentId}
-          onMoveUp={() => moveBlockUp(blockId, parentId)}
-          onMoveDown={() => moveBlockDown(blockId, parentId)}
-          onDuplicate={() => duplicateBlock(blockId)}
-          onDelete={() => deleteBlock(blockId)}
-        />
+        <>
+          <PaddingResizeHandles blockId={blockId} />
+          <BlockToolbar
+            blockId={blockId}
+            parentId={parentId}
+            onMoveUp={() => moveBlockUp(blockId, parentId)}
+            onMoveDown={() => moveBlockDown(blockId, parentId)}
+            onDuplicate={() => duplicateBlock(blockId)}
+            onDelete={() => deleteBlock(blockId)}
+          />
+        </>
       )}
     </div>
   );
@@ -112,15 +116,18 @@ export function SortableBlockWrapper({
       {children}
 
       {isSelected && (
-        <BlockToolbar
-          blockId={blockId}
-          parentId={parentId}
-          onMoveUp={() => moveBlockUp(blockId, parentId)}
-          onMoveDown={() => moveBlockDown(blockId, parentId)}
-          onDuplicate={() => duplicateBlock(blockId)}
-          onDelete={() => deleteBlock(blockId)}
-          dragHandleProps={{ ...attributes, ...listeners }}
-        />
+        <>
+          <PaddingResizeHandles blockId={blockId} />
+          <BlockToolbar
+            blockId={blockId}
+            parentId={parentId}
+            onMoveUp={() => moveBlockUp(blockId, parentId)}
+            onMoveDown={() => moveBlockDown(blockId, parentId)}
+            onDuplicate={() => duplicateBlock(blockId)}
+            onDelete={() => deleteBlock(blockId)}
+            dragHandleProps={{ ...attributes, ...listeners }}
+          />
+        </>
       )}
 
       {!isSelected && (

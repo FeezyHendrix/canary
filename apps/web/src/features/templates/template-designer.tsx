@@ -286,10 +286,14 @@ export function TemplateDesigner() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-[calc(100vh-7rem)]">
+      <div className="flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/templates')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(`/templates?tab=${generatePdf ? 'pdf' : 'email'}`)}
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -339,7 +343,7 @@ export function TemplateDesigner() {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 flex-shrink-0 mt-6">
         <div>
           <Label htmlFor="name">Template Name</Label>
           <Input
@@ -364,12 +368,14 @@ export function TemplateDesigner() {
         </div>
       </div>
 
-      <EmailEditor
-        key={loadedTemplateId || 'new'}
-        initialDocument={designJson}
-        onChange={handleDocumentChange}
-        isPdf={generatePdf}
-      />
+      <div className="flex-1 min-h-0 mt-6">
+        <EmailEditor
+          key={loadedTemplateId || 'new'}
+          initialDocument={designJson}
+          onChange={handleDocumentChange}
+          isPdf={generatePdf}
+        />
+      </div>
 
       {showTestSend && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

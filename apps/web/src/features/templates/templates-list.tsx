@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, MoreVertical, Copy, Trash2, Edit, Mail, FileText } from 'lucide-react';
 import { api } from '@/lib/api-client';
@@ -19,8 +19,15 @@ import type { TemplateListItem, PaginatedResponse } from '@canary/shared';
 type TemplateType = 'email' | 'pdf';
 
 export function TemplatesList() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState<TemplateType>('email');
+
+  // Get active tab from URL query param, default to 'email'
+  const activeTab = (searchParams.get('tab') as TemplateType) || 'email';
+
+  const setActiveTab = (tab: TemplateType) => {
+    setSearchParams({ tab });
+  };
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['templates', search, activeTab],

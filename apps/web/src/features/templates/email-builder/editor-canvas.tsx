@@ -195,6 +195,7 @@ export function BlockRenderer({ blockId, document }: BlockRendererProps) {
     textColor?: string;
     fontSize?: number;
     textAlign?: string;
+    padding?: { top?: number; bottom?: number; left?: number; right?: number };
   };
 
   const blockStyle: React.CSSProperties = {
@@ -202,6 +203,7 @@ export function BlockRenderer({ blockId, document }: BlockRendererProps) {
     color: style.textColor,
     fontSize: style.fontSize ? `${style.fontSize}px` : undefined,
     textAlign: style.textAlign as React.CSSProperties['textAlign'],
+    padding: formatPadding(style.padding),
   };
 
   const singleBlockDoc = {

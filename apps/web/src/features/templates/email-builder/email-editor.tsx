@@ -263,7 +263,7 @@ export function EmailEditor({ initialDocument, onChange, sampleData, isPdf = fal
   };
 
   return (
-    <div className="flex h-[700px] border rounded-lg overflow-hidden bg-background">
+    <div className="flex h-full border rounded-lg overflow-hidden bg-background">
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between border-b px-4 py-2 bg-muted/30">
           <div className="flex items-center gap-3">
