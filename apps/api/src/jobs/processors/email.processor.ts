@@ -1,7 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { Redis } from 'ioredis';
 import { eq, or } from 'drizzle-orm';
-import { db, templates, emailLogs } from '../../db';
+import { db, templates, emailLogs, teams } from '../../db';
 import { renderTemplate } from '../../lib/handlebars';
 import { generatePdfFromHtml, isPdfEnabled } from '../../services/pdf.service';
 import { renderChartToImage, isChartRenderingEnabled } from '../../services/chart.service';
@@ -12,6 +12,34 @@ import type { EmailJobData } from '../queues';
 import type { AdapterType, ChartBlockProps, ChartData } from '@canary/shared';
 import { env } from '../../lib/env';
 import { nanoid } from 'nanoid';
+
+/**
+ * Canary branding footer HTML - shown for free tier users
+ */
+const CANARY_BRANDING_FOOTER = `
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 32px; border-top: 1px solid #e5e7eb;">
+  <tr>
+    <td style="padding: 24px 0; text-align: center;">
+      <p style="margin: 0; font-size: 12px; color: #9ca3af; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        Made with ❤️ by <a href="https://canarymail.dev" style="color: #6366f1; text-decoration: none;">Canary</a>
+      </p>
+    </td>
+  </tr>
+</table>
+`;
+
+/**
+ * Add Canary branding footer to HTML email
+ * Inserts before closing </body> tag, or appends to end if no body tag
+ */
+function addBrandingFooter(html: string): string {
+  const bodyCloseIndex = html.toLowerCase().lastIndexOf('</body>');
+  if (bodyCloseIndex !== -1) {
+    return html.slice(0, bodyCloseIndex) + CANARY_BRANDING_FOOTER + html.slice(bodyCloseIndex);
+  }
+  // No body tag, append to end
+  return html + CANARY_BRANDING_FOOTER;
+}
 
 function stripHtml(html: string): string {
   return html
@@ -232,6 +260,17 @@ export function createEmailWorker() {
       const adapter = await getDefaultAdapter(teamId);
       if (!adapter) {
         throw new Error('No email adapter configured');
+      }
+
+      // Check if team has branding removal (paid feature)
+      const team = await db.query.teams.findFirst({
+        where: eq(teams.id, teamId),
+        columns: { removeBranding: true },
+      });
+
+      // Add Canary branding footer for free tier users
+      if (!team?.removeBranding) {
+        html = addBrandingFooter(html);
       }
 
       const adapterConfig = decryptJson(adapter.configEncrypted);

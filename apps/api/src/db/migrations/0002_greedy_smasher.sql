@@ -1,0 +1,1 @@
+ALTER TABLE "teams" ADD COLUMN "remove_branding" boolean DEFAULT false;

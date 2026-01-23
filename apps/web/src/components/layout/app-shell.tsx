@@ -11,7 +11,6 @@ import {
   ScrollText,
   ChevronLeft,
   ChevronRight,
-  Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/auth-context';
@@ -117,12 +116,11 @@ export function AppShell({ children }: AppShellProps) {
             sidebarOpen ? 'px-5' : 'px-4 justify-center'
           )}
         >
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-              <Mail className="h-4 w-4 text-white" />
-            </div>
-            {sidebarOpen && (
-              <span className="font-semibold text-lg text-gray-900 tracking-tight">Canary</span>
+          <Link to="/" className="flex items-center">
+            {sidebarOpen ? (
+              <img src="/assets/logo.svg" alt="Canary" className="h-7" />
+            ) : (
+              <img src="/assets/logo.svg" alt="Canary" className="h-6 w-8 object-cover object-left" />
             )}
           </Link>
         </div>

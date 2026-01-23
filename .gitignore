@@ -7,28 +7,115 @@ dist
 build
 .next
 .turbo
+out
 
-# Environment
+# Environment & Secrets
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.cert
+secrets/
+.secrets
 
-# IDE
+# IDE & Editor
 .vscode
 .idea
 *.swp
 *.swo
 .DS_Store
+*.sublime-*
+.project
+.classpath
+.settings/
 
 # Logs
 logs
 *.log
 npm-debug.log*
 pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# Testing
+# Testing & Coverage
 coverage
+.nyc_output
+*.lcov
+.coverage
+htmlcov/
 
-# Misc
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+migrations/*.snapshot
+prisma/*.db
+drizzle/*.db
+
+# Cache
+.cache
+.parcel-cache
+.npm
 *.tsbuildinfo
 .eslintcache
+.stylelintcache
+.prettiercache
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Docker
+.docker
+
+# Local development
+.local
+*.local.ts
+*.local.js
+*.local.json
+
+# Runtime license files (not source code)
+# license-keys/
+# .license
+
+# Debug
+.debug
+*.debug.log
+
+# Uploaded files (should use external storage in production)
+uploads/
+public/uploads/
+
+# Generated files
+generated/
+*.generated.ts
+*.generated.js
+
+# Storybook
+storybook-static/
+
+# Playwright
+playwright-report/
+playwright/.cache/
+test-results/
+
+# Claude Code
+.claude
+
+# Landing page (separate marketing site)
+apps/landing

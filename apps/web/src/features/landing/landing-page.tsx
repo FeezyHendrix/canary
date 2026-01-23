@@ -21,11 +21,8 @@ function Navigation() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-4 md:pt-5">
       <nav className="mx-auto max-w-6xl flex items-center justify-between rounded-2xl border border-zinc-200/60 bg-white/80 px-4 py-3 backdrop-blur-xl shadow-sm">
-        <Link to="/landing" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 shadow-md shadow-violet-500/20">
-            <Mail className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-zinc-900">Canary</span>
+        <Link to="/landing" className="flex items-center">
+          <img src="/assets/logo.svg" alt="Canary" className="h-7" />
         </Link>
 
         <div className="hidden lg:flex items-center gap-8">
@@ -588,11 +585,8 @@ function Footer() {
       <div className="mx-auto max-w-6xl px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-violet-600 shadow-md shadow-violet-500/20">
-              <Mail className="h-4 w-4 text-white" />
-            </div>
-            <span className="text-lg font-semibold tracking-tight text-zinc-900">Canary</span>
+          <div className="flex items-center">
+            <img src="/assets/logo.svg" alt="Canary" className="h-7" />
           </div>
 
           {/* Links */}
