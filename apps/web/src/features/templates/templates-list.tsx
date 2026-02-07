@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import type { TemplateListItem, PaginatedResponse } from '@canary/shared';
 
@@ -21,6 +22,7 @@ type TemplateType = 'email' | 'pdf';
 export function TemplatesList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Get active tab from URL query param, default to 'email'
   const activeTab = (searchParams.get('tab') as TemplateType) || 'email';
@@ -55,14 +57,20 @@ export function TemplatesList() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+  const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await api.delete(`/api/templates/${id}`);
+      await api.delete(`/api/templates/${confirmDeleteId}`);
       toast({ title: 'Template deleted' });
       refetch();
     } catch {
       toast({ title: 'Failed to delete template', variant: 'destructive' });
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -203,6 +211,15 @@ export function TemplatesList() {
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Delete Template"
+        description="Are you sure you want to delete this template? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   );
 }

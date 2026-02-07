@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   ADAPTER_DISPLAY_NAMES,
   ADAPTER_TYPE_LIST,
@@ -91,6 +92,7 @@ export function AdaptersList() {
     config: Record<string, string>;
     isDefault: boolean;
   }>({ name: '', defaultFrom: '', config: {}, isDefault: false });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['adapters'],
@@ -176,9 +178,7 @@ export function AdaptersList() {
   });
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this adapter?')) {
-      deleteMutation.mutate(id);
-    }
+    setConfirmDeleteId(id);
   };
 
   const handleEdit = (adapter: Adapter) => {
@@ -248,6 +248,19 @@ export function AdaptersList() {
           Add Adapter
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Delete Adapter"
+        description="Are you sure you want to delete this adapter? Any templates using it will need to be reassigned to a different provider."
+        confirmLabel="Delete"
+        variant="destructive"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId, { onSettled: () => setConfirmDeleteId(null) });
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
