@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import {
   API_KEY_SCOPES,
   type ApiKey,
@@ -39,6 +40,8 @@ export function ApiKeysList() {
     rateLimit: number;
     isActive: boolean;
   }>({ name: '', scopes: ['send'], rateLimit: 100, isActive: true });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmRegenerateId, setConfirmRegenerateId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['api-keys'],
@@ -118,9 +121,7 @@ export function ApiKeysList() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this API key?')) {
-      deleteMutation.mutate(id);
-    }
+    setConfirmDeleteId(id);
   };
 
   const handleEdit = (key: ApiKey) => {
@@ -145,13 +146,7 @@ export function ApiKeysList() {
   };
 
   const handleRegenerate = (id: string) => {
-    if (
-      confirm(
-        'Are you sure you want to regenerate this API key? The old key will stop working immediately.'
-      )
-    ) {
-      regenerateMutation.mutate(id);
-    }
+    setConfirmRegenerateId(id);
   };
 
   const toggleScope = (scope: ApiKeyScope) => {
@@ -294,6 +289,32 @@ export function ApiKeysList() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Delete API Key"
+        description="Are you sure you want to delete this API key? Any applications using it will lose access immediately."
+        confirmLabel="Delete"
+        variant="destructive"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId, { onSettled: () => setConfirmDeleteId(null) });
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmRegenerateId}
+        title="Regenerate API Key"
+        description="Are you sure you want to regenerate this API key? The old key will stop working immediately."
+        confirmLabel="Regenerate"
+        variant="destructive"
+        loading={regenerateMutation.isPending}
+        onConfirm={() => {
+          if (confirmRegenerateId) regenerateMutation.mutate(confirmRegenerateId, { onSettled: () => setConfirmRegenerateId(null) });
+        }}
+        onCancel={() => setConfirmRegenerateId(null)}
+      />
 
       {editingKey && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">

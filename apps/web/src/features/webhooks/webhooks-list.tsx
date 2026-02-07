@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { WEBHOOK_EVENTS, type Webhook, type WebhookEvent } from '@canary/shared';
 
 const EVENT_DESCRIPTIONS: Record<WebhookEvent, string> = {
@@ -45,6 +46,7 @@ export function WebhooksList() {
     url: string;
     events: WebhookEvent[];
   }>({ name: '', url: '', events: [] });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['webhooks'],
@@ -96,9 +98,7 @@ export function WebhooksList() {
   });
 
   const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this webhook?')) {
-      deleteMutation.mutate(id);
-    }
+    setConfirmDeleteId(id);
   };
 
   const handleToggleActive = (webhook: Webhook) => {
@@ -174,6 +174,19 @@ export function WebhooksList() {
           Add Webhook
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Delete Webhook"
+        description="Are you sure you want to delete this webhook? You will stop receiving event notifications at this endpoint."
+        confirmLabel="Delete"
+        variant="destructive"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId, { onSettled: () => setConfirmDeleteId(null) });
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
