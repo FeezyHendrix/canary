@@ -20,6 +20,7 @@ import {
   testSendSchema,
   listTemplatesSchema,
 } from './templates.schema';
+import { enforceTemplateLimit } from '../billing/billing.service';
 
 export async function templatesRoutes(app: FastifyInstance) {
   app.get('/', { preHandler: requireAuth }, async (request) => {
@@ -31,6 +32,8 @@ export async function templatesRoutes(app: FastifyInstance) {
 
   app.post('/', { preHandler: requirePermission('templates:create') }, async (request) => {
     const team = requireTeam(request);
+    // Enforce subscription limits before creating
+    await enforceTemplateLimit(team.teamId);
     const input = createTemplateSchema.parse(request.body);
     const template = await createTemplate(team.teamId, request.user!.id, input);
     return { success: true, data: template };
@@ -63,6 +66,8 @@ export async function templatesRoutes(app: FastifyInstance) {
     { preHandler: requirePermission('templates:create') },
     async (request) => {
       const team = requireTeam(request);
+      // Enforce subscription limits before duplicating
+      await enforceTemplateLimit(team.teamId);
       const { id } = request.params as { id: string };
       const template = await duplicateTemplate(team.teamId, id, request.user!.id);
       return { success: true, data: template };

@@ -1,6 +1,6 @@
 import { eq, count } from 'drizzle-orm';
 import { db } from '../../db';
-import { subscriptions, templates, teamMembers } from '../../db/schema';
+import { subscriptions, templates, teamMembers, billingEvents } from '../../db/schema';
 import { env } from '../../lib/env';
 import { AppError } from '../../lib/errors';
 import type { CheckoutInput } from './billing.schema';
@@ -80,12 +80,104 @@ export async function getSubscription(teamId: string) {
       status: 'active' as SubscriptionStatus,
       currentPeriodEnd: null,
       cancelAtPeriodEnd: false,
+      refundedAt: null,
+      refundAmount: null,
+      refundReason: null,
+      refundCount: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
   }
 
   return subscription;
+}
+
+export async function getSubscriptionByPolarId(polarSubscriptionId: string) {
+  const [subscription] = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.polarSubscriptionId, polarSubscriptionId))
+    .limit(1);
+
+  return subscription;
+}
+
+type BillingEventType =
+  | 'subscription_created'
+  | 'subscription_updated'
+  | 'subscription_canceled'
+  | 'checkout_completed'
+  | 'refund_processed'
+  | 'subscription_revoked';
+
+export async function logBillingEvent(
+  teamId: string,
+  eventType: BillingEventType,
+  data: {
+    previousPlan?: SubscriptionPlan;
+    newPlan?: SubscriptionPlan;
+    previousStatus?: SubscriptionStatus;
+    newStatus?: SubscriptionStatus;
+    amount?: number;
+    reason?: string;
+    polarEventId?: string;
+    metadata?: Record<string, unknown>;
+  }
+) {
+  await db.insert(billingEvents).values({
+    teamId,
+    eventType,
+    previousPlan: data.previousPlan,
+    newPlan: data.newPlan,
+    previousStatus: data.previousStatus,
+    newStatus: data.newStatus,
+    amount: data.amount,
+    reason: data.reason,
+    polarEventId: data.polarEventId,
+    metadata: data.metadata,
+  });
+}
+
+export async function processRefund(
+  teamId: string,
+  refundData: {
+    amount: number;
+    reason?: string;
+    polarEventId?: string;
+  }
+) {
+  const existing = await getSubscription(teamId);
+  const currentRefundCount = existing.refundCount ?? 0;
+
+  // Log the refund event for audit trail
+  await logBillingEvent(teamId, 'refund_processed', {
+    previousPlan: existing.plan,
+    newPlan: 'free',
+    previousStatus: existing.status,
+    newStatus: 'refunded',
+    amount: refundData.amount,
+    reason: refundData.reason,
+    polarEventId: refundData.polarEventId,
+    metadata: {
+      refundCount: currentRefundCount + 1,
+    },
+  });
+
+  const [updated] = await db
+    .update(subscriptions)
+    .set({
+      plan: 'free', // Immediately downgrade on refund
+      status: 'refunded',
+      refundedAt: new Date(),
+      refundAmount: refundData.amount,
+      refundReason: refundData.reason || null,
+      refundCount: currentRefundCount + 1,
+      updatedAt: new Date(),
+    })
+    .where(eq(subscriptions.teamId, teamId))
+    .returning();
+
+  return updated;
 }
 
 export async function getSubscriptionWithUsage(teamId: string) {
@@ -116,6 +208,9 @@ export async function createCheckoutSession(
   userEmail: string,
   input: CheckoutInput
 ) {
+  // Check for refund abuse before allowing new subscription
+  await enforceNoRefundAbuse(teamId);
+
   const priceId = getPriceId(input.plan, input.interval);
 
   const existingSubscription = await getSubscription(teamId);
@@ -227,4 +322,103 @@ export function canAddTeamMember(plan: SubscriptionPlan, currentCount: number): 
 
 export function canUsePremiumBlocks(plan: SubscriptionPlan): boolean {
   return PLAN_LIMITS[plan].premiumBlocksEnabled;
+}
+
+const MAX_REFUNDS_ALLOWED = 2;
+
+/** Check if a team has exceeded refund limits (potential abuse) */
+export async function checkRefundAbuse(teamId: string): Promise<{
+  isAbusive: boolean;
+  refundCount: number;
+}> {
+  const subscription = await getSubscription(teamId);
+  const refundCount = subscription.refundCount ?? 0;
+
+  return {
+    isAbusive: refundCount >= MAX_REFUNDS_ALLOWED,
+    refundCount,
+  };
+}
+
+/** Enforce refund abuse check before allowing new subscription */
+export async function enforceNoRefundAbuse(teamId: string): Promise<void> {
+  const { isAbusive, refundCount } = await checkRefundAbuse(teamId);
+
+  if (isAbusive) {
+    throw new AppError(
+      'REFUND_ABUSE_DETECTED',
+      `This account has exceeded the maximum number of refunds (${refundCount}/${MAX_REFUNDS_ALLOWED}). Please contact support if you believe this is an error.`,
+      403
+    );
+  }
+}
+
+/** Get the effective plan for a team, considering refund status */
+export function getEffectivePlan(subscription: {
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+}): SubscriptionPlan {
+  // If refunded, treat as free regardless of stored plan
+  if (subscription.status === 'refunded') {
+    return 'free';
+  }
+  return subscription.plan;
+}
+
+/** Check if a team can create a new template */
+export async function enforceTemplateLimit(teamId: string): Promise<void> {
+  const subscription = await getSubscription(teamId);
+  const effectivePlan = getEffectivePlan(subscription);
+
+  const [templateCount] = await db
+    .select({ count: count() })
+    .from(templates)
+    .where(eq(templates.teamId, teamId));
+
+  const currentCount = templateCount?.count ?? 0;
+
+  if (!canCreateTemplate(effectivePlan, currentCount)) {
+    const limits = PLAN_LIMITS[effectivePlan];
+    throw new AppError(
+      'TEMPLATE_LIMIT_REACHED',
+      `You have reached the template limit (${limits.maxTemplates}) for the ${effectivePlan} plan. Please upgrade to create more templates.`,
+      403
+    );
+  }
+}
+
+/** Check if a team can add a new member */
+export async function enforceTeamMemberLimit(teamId: string): Promise<void> {
+  const subscription = await getSubscription(teamId);
+  const effectivePlan = getEffectivePlan(subscription);
+
+  const [memberCount] = await db
+    .select({ count: count() })
+    .from(teamMembers)
+    .where(eq(teamMembers.teamId, teamId));
+
+  const currentCount = memberCount?.count ?? 0;
+
+  if (!canAddTeamMember(effectivePlan, currentCount)) {
+    const limits = PLAN_LIMITS[effectivePlan];
+    throw new AppError(
+      'TEAM_MEMBER_LIMIT_REACHED',
+      `You have reached the team member limit (${limits.maxTeamMembers}) for the ${effectivePlan} plan. Please upgrade to add more members.`,
+      403
+    );
+  }
+}
+
+/** Check if a team can use premium blocks */
+export async function enforcePremiumBlockAccess(teamId: string): Promise<void> {
+  const subscription = await getSubscription(teamId);
+  const effectivePlan = getEffectivePlan(subscription);
+
+  if (!canUsePremiumBlocks(effectivePlan)) {
+    throw new AppError(
+      'PREMIUM_FEATURE',
+      'Premium blocks are only available on Pro and Team plans. Please upgrade to use this feature.',
+      403
+    );
+  }
 }

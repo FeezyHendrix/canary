@@ -13,10 +13,16 @@ export const SUBSCRIPTION_STATUSES = {
   CANCELED: 'canceled',
   PAST_DUE: 'past_due',
   INCOMPLETE: 'incomplete',
+  REFUNDED: 'refunded',
 } as const;
 
 export type SubscriptionStatus =
   (typeof SUBSCRIPTION_STATUSES)[keyof typeof SUBSCRIPTION_STATUSES];
+
+/** Check if a subscription has active paid access */
+export function hasActiveAccess(status: SubscriptionStatus): boolean {
+  return status === 'active';
+}
 
 export interface PlanLimits {
   maxTemplates: number | null;

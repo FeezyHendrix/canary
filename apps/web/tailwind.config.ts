@@ -11,6 +11,19 @@ export default {
     },
     extend: {
       colors: {
+        violet: {
+          50: '#faf5ff',
+          100: '#f0e0ff',
+          200: '#dbb8ff',
+          300: '#c085ff',
+          400: '#a040f0',
+          500: '#7B00D8',
+          600: '#6a00ba',
+          700: '#55009a',
+          800: '#400078',
+          900: '#2d0055',
+          950: '#1a0033',
+        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

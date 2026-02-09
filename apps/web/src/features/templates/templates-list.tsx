@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toaster';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { useSubscription } from '@/hooks/use-subscription';
 import { UpgradeModal } from '@/components/upgrade-modal';
@@ -23,6 +24,7 @@ type TemplateType = 'email' | 'pdf';
 export function TemplatesList() {
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<TemplateType>('email');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const navigate = useNavigate();
   const { limits, canCreateTemplate } = useSubscription();
@@ -53,14 +55,20 @@ export function TemplatesList() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+  const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await api.delete(`/api/templates/${id}`);
+      await api.delete(`/api/templates/${confirmDeleteId}`);
       toast({ title: 'Template deleted' });
       refetch();
     } catch {
       toast({ title: 'Failed to delete template', variant: 'destructive' });
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -216,6 +224,15 @@ export function TemplatesList() {
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={!!confirmDeleteId}
+        title="Delete Template"
+        description="Are you sure you want to delete this template? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}

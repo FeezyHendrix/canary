@@ -66,7 +66,7 @@ export function UpgradeModal({ isOpen, onClose, feature, currentUsage: _currentU
       <div className="relative bg-background rounded-lg shadow-lg w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <h2 className="text-lg font-semibold">{message.title}</h2>

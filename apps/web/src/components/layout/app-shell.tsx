@@ -11,7 +11,6 @@ import {
   ScrollText,
   ChevronLeft,
   ChevronRight,
-  Mail,
   CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -120,12 +119,7 @@ export function AppShell({ children }: AppShellProps) {
           )}
         >
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-              <Mail className="h-4 w-4 text-white" />
-            </div>
-            {sidebarOpen && (
-              <span className="font-semibold text-lg text-gray-900 tracking-tight">Canary</span>
-            )}
+            <img src="/images/logo.png" alt="Canary" className={sidebarOpen ? 'h-7' : 'h-6'} />
           </Link>
         </div>
 
@@ -222,7 +216,7 @@ export function AppShell({ children }: AppShellProps) {
                   </div>
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={user?.avatarUrl || undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-600 text-white text-sm font-medium">
+                    <AvatarFallback className="bg-gradient-to-br from-violet-500 to-violet-600 text-white text-sm font-medium">
                       {initials}
                     </AvatarFallback>
                   </Avatar>

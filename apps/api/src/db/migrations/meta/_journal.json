@@ -22,6 +22,20 @@
       "when": 1768215528359,
       "tag": "0002_handy_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1769807011246,
+      "tag": "0003_groovy_starfox",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1769807258144,
+      "tag": "0004_breezy_talon",
+      "breakpoints": true
     }
   ]
 }

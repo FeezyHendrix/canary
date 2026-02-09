@@ -9,6 +9,11 @@ export interface Subscription {
   status: SubscriptionStatus;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
+  // Refund tracking
+  refundedAt: Date | null;
+  refundAmount: number | null;
+  refundReason: string | null;
+  refundCount: number;
   createdAt: Date;
   updatedAt: Date;
 }

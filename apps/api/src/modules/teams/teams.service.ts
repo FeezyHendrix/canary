@@ -7,6 +7,7 @@ import { getDefaultAdapter, getAdapterWithConfig } from '../adapters/adapters.se
 import { createAdapter } from '../../adapters/adapter.factory';
 import { decryptJson } from '../../lib/encryption';
 import { env } from '../../lib/env';
+import { enforceTeamMemberLimit } from '../billing/billing.service';
 import type {
   CreateTeamInput,
   UpdateTeamInput,
@@ -239,6 +240,9 @@ export async function acceptInvite(userId: string, token: string) {
   if (!user || user.email !== invite.email) {
     throw new ForbiddenError('Invite is for a different email address');
   }
+
+  // Enforce subscription limits before accepting invite
+  await enforceTeamMemberLimit(invite.teamId);
 
   await db.insert(teamMembers).values({
     teamId: invite.teamId,

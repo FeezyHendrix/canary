@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import crypto from 'crypto';
 import { env } from '../../lib/env';
-import { upsertSubscription } from './billing.service';
+import { upsertSubscription, processRefund, getSubscriptionByPolarId, logBillingEvent } from './billing.service';
 import type { SubscriptionPlan, SubscriptionStatus } from '@canary/shared';
 
 interface PolarWebhookEvent {
@@ -9,21 +9,25 @@ interface PolarWebhookEvent {
   data: {
     id: string;
     customer_id: string;
-    product: {
+    product?: {
       id: string;
       name: string;
     };
-    price: {
+    price?: {
       id: string;
     };
     status: string;
-    current_period_end: string | null;
-    cancel_at_period_end: boolean;
-    metadata: {
+    current_period_end?: string | null;
+    cancel_at_period_end?: boolean;
+    metadata?: {
       team_id?: string;
       user_id?: string;
       plan?: string;
     };
+    // Refund-specific fields
+    subscription_id?: string;
+    amount?: number;
+    reason?: string;
   };
 }
 
@@ -182,6 +186,56 @@ export async function polarWebhookRoutes(app: FastifyInstance) {
             });
 
             request.log.info({ teamId, plan: data.metadata?.plan }, 'Checkout completed');
+            break;
+          }
+
+          // Handle refund events - revoke access immediately
+          case 'order.refunded': {
+            const { data } = event;
+            const subscriptionId = data.subscription_id;
+
+            if (!subscriptionId) {
+              request.log.warn('No subscription_id in refund event');
+              return reply.status(200).send({ received: true });
+            }
+
+            // Find the subscription by Polar subscription ID
+            const subscription = await getSubscriptionByPolarId(subscriptionId);
+            if (!subscription) {
+              request.log.warn({ subscriptionId }, 'Subscription not found for refund');
+              return reply.status(200).send({ received: true });
+            }
+
+            await processRefund(subscription.teamId, {
+              amount: data.amount ?? 0,
+              reason: data.reason || 'Customer requested refund',
+              polarEventId: data.id,
+            });
+
+            request.log.info(
+              { teamId: subscription.teamId, amount: data.amount },
+              'Refund processed - access revoked'
+            );
+            break;
+          }
+
+          // Handle subscription revocation (e.g., chargeback, fraud)
+          case 'subscription.revoked': {
+            const { data } = event;
+            const teamId = data.metadata?.team_id;
+
+            if (!teamId) {
+              request.log.warn('No team_id in subscription revocation');
+              return reply.status(200).send({ received: true });
+            }
+
+            await processRefund(teamId, {
+              amount: 0,
+              reason: 'Subscription revoked',
+              polarEventId: data.id,
+            });
+
+            request.log.info({ teamId }, 'Subscription revoked - access removed');
             break;
           }
 

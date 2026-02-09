@@ -19,6 +19,7 @@ import {
   inviteMemberSchema,
   updateMemberRoleSchema,
 } from './teams.schema';
+import { enforceTeamMemberLimit } from '../billing/billing.service';
 
 export async function teamsRoutes(app: FastifyInstance) {
   app.post('/', { preHandler: requireAuth }, async (request) => {
@@ -62,6 +63,8 @@ export async function teamsRoutes(app: FastifyInstance) {
 
   app.post('/:id/invite', { preHandler: requirePermission('team:invite') }, async (request) => {
     const { id } = request.params as { id: string };
+    // Enforce subscription limits before inviting
+    await enforceTeamMemberLimit(id);
     const input = inviteMemberSchema.parse(request.body);
     const invite = await inviteMember(request.user!.id, id, input);
     return { success: true, data: invite };
