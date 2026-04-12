@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   LayoutTemplate,
@@ -85,6 +85,8 @@ function StatusBadge({ status }: StatusBadgeProps) {
 }
 
 export function Dashboard() {
+  const [searchQuery, setSearchQuery] = useState('');
+
   const { data: templatesData } = useQuery({
     queryKey: ['templates', { page: 1, pageSize: 1 }],
     queryFn: () =>
@@ -115,6 +117,17 @@ export function Dashboard() {
   const templateCount = templatesData?.data?.total ?? 0;
   const emailCount = logsData?.data?.total ?? 0;
   const recentEmails = logsData?.data?.items ?? [];
+
+  const filteredEmails = useMemo(() => {
+    if (!searchQuery.trim()) return recentEmails;
+    const q = searchQuery.toLowerCase();
+    return recentEmails.filter(
+      (e) =>
+        (e.subject || '').toLowerCase().includes(q) ||
+        (e.recipientEmail || e.to || '').toLowerCase().includes(q) ||
+        e.status.toLowerCase().includes(q)
+    );
+  }, [recentEmails, searchQuery]);
 
   const deliveredCount = recentEmails.filter(
     (e) => e.status === 'sent' || e.status === 'delivered'
@@ -182,17 +195,30 @@ export function Dashboard() {
               <input
                 type="text"
                 placeholder="Search emails..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-64 transition-colors"
               />
             </div>
           </div>
         </div>
 
-        {recentEmails.length === 0 ? (
+        {filteredEmails.length === 0 ? (
           <div className="p-12 text-center">
             <Mail className="mx-auto h-12 w-12 text-gray-300" />
-            <p className="mt-4 text-sm font-medium text-gray-900">No emails sent yet</p>
-            <p className="mt-1 text-sm text-gray-500">Send your first email to see activity here</p>
+            {searchQuery.trim() ? (
+              <>
+                <p className="mt-4 text-sm font-medium text-gray-900">No matching emails</p>
+                <p className="mt-1 text-sm text-gray-500">Try a different search term</p>
+              </>
+            ) : (
+              <>
+                <p className="mt-4 text-sm font-medium text-gray-900">No emails sent yet</p>
+                <p className="mt-1 text-sm text-gray-500">
+                  Send your first email to see activity here
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -214,7 +240,7 @@ export function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {recentEmails.slice(0, 10).map((email) => (
+                {filteredEmails.slice(0, 10).map((email) => (
                   <tr key={email.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <p className="text-sm font-medium text-gray-900 truncate max-w-xs">

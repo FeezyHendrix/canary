@@ -14,6 +14,7 @@ import { apiKeysRoutes } from './modules/api-keys/api-keys.routes';
 import { webhooksRoutes } from './modules/webhooks/webhooks.routes';
 import { teamsRoutes } from './modules/teams/teams.routes';
 import { uploadsRoutes } from './modules/uploads/uploads.routes';
+import { providerCallbackRoutes } from './modules/provider-callbacks/provider-callbacks.routes';
 
 export async function buildApp() {
   const app = Fastify({
@@ -111,6 +112,10 @@ export async function buildApp() {
   await app.register(webhooksRoutes, { prefix: '/api/webhooks' });
   await app.register(teamsRoutes, { prefix: '/api/teams' });
   await app.register(uploadsRoutes, { prefix: '/api/uploads' });
+
+  if (env.PROVIDER_CALLBACKS_ENABLED) {
+    await app.register(providerCallbackRoutes, { prefix: '/api/callbacks' });
+  }
 
   return app;
 }
