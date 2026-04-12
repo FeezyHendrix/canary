@@ -1,8 +1,11 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { env } from './lib/env';
 import { AppError } from './lib/errors';
 import { authRoutes } from './modules/auth/auth.routes';
@@ -119,6 +122,24 @@ export async function buildApp() {
 
   if (env.PROVIDER_CALLBACKS_ENABLED) {
     await app.register(providerCallbackRoutes, { prefix: '/api/callbacks' });
+  }
+
+  const publicDir = path.resolve(process.cwd(), 'public');
+  if (existsSync(publicDir)) {
+    await app.register(fastifyStatic, {
+      root: publicDir,
+      wildcard: false,
+    });
+
+    app.setNotFoundHandler((request, reply) => {
+      if (request.url.startsWith('/api/')) {
+        return reply.status(404).send({
+          success: false,
+          error: { code: 'NOT_FOUND', message: 'Route not found' },
+        });
+      }
+      return reply.sendFile('index.html');
+    });
   }
 
   return app;
