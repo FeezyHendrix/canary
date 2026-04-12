@@ -38,6 +38,14 @@ function generateChartSvg(options: ChartRenderOptions): string {
     height = 300,
   } = options;
 
+  // Validate data shape
+  if (!data || !Array.isArray(data.labels) || !Array.isArray(data.datasets)) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <rect width="${width}" height="${height}" fill="white" />
+      <text x="${width / 2}" y="${height / 2}" text-anchor="middle" fill="#9ca3af" font-size="14">Invalid chart data</text>
+    </svg>`;
+  }
+
   const padding = { top: title ? 40 : 20, right: 20, bottom: showLegend && legendPosition === 'bottom' ? 60 : 40, left: 50 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
@@ -69,6 +77,15 @@ function generateCartesianChart(
   } = options;
 
   const { labels, datasets } = data;
+
+  // Guard: return placeholder SVG when there's no data to render
+  if (!labels.length || !datasets.length) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <rect width="${width}" height="${height}" fill="white" />
+      ${title ? `<text x="${width / 2}" y="25" text-anchor="middle" fill="#111827" font-size="16" font-weight="600">${escapeXml(title)}</text>` : ''}
+      <text x="${width / 2}" y="${height / 2}" text-anchor="middle" fill="#9ca3af" font-size="14">No data available</text>
+    </svg>`;
+  }
 
   // Calculate max value for scaling
   const allValues = datasets.flatMap(d => d.values);
@@ -109,14 +126,23 @@ function generateCartesianChart(
   if (chartType === 'bar') {
     const barWidth = (barGroupWidth * 0.8) / datasets.length;
     const barGap = barGroupWidth * 0.1;
+    // Calculate where the zero line sits in the chart area
+    const zeroY = padding.top + chartHeight - ((0 - minValue) / valueRange) * chartHeight;
+
+    // Draw zero line if there are negative values
+    if (minValue < 0) {
+      chartElements.push(`<line x1="${padding.left}" y1="${zeroY}" x2="${padding.left + chartWidth}" y2="${zeroY}" stroke="#9ca3af" stroke-width="1" stroke-dasharray="4,4" />`);
+    }
 
     datasets.forEach((dataset, datasetIndex) => {
       dataset.values.forEach((value, valueIndex) => {
-        const barHeight = ((value - minValue) / valueRange) * chartHeight;
+        const valueY = padding.top + chartHeight - ((value - minValue) / valueRange) * chartHeight;
         const x = padding.left + barGroupWidth * valueIndex + barGap + barWidth * datasetIndex;
-        const y = padding.top + chartHeight - barHeight;
         const color = colors[datasetIndex % colors.length];
-        chartElements.push(`<rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${color}" rx="2" />`);
+        // Bars grow from zero line: upward for positive, downward for negative
+        const barTop = value >= 0 ? valueY : zeroY;
+        const barHeight = Math.abs(valueY - zeroY);
+        chartElements.push(`<rect x="${x}" y="${barTop}" width="${barWidth}" height="${barHeight}" fill="${color}" rx="2" />`);
       });
     });
   } else if (chartType === 'line' || chartType === 'area') {
@@ -200,18 +226,29 @@ function generatePieChart(
 
   const { labels, datasets } = data;
   const values = datasets[0]?.values || [];
-  const total = values.reduce((sum, v) => sum + v, 0) || 1;
+  const total = values.reduce((sum, v) => sum + v, 0);
 
   const centerX = padding.left + chartWidth / 2;
   const centerY = padding.top + chartHeight / 2;
   const radius = Math.min(chartWidth, chartHeight) / 2 - 10;
   const innerRadius = chartType === 'doughnut' ? radius * 0.5 : 0;
 
+  // Guard: if no labels, no datasets, or all values are zero, render a placeholder
+  if (!labels.length || !values.length || total === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <rect width="${width}" height="${height}" fill="white" />
+      ${title ? `<text x="${width / 2}" y="25" text-anchor="middle" fill="#111827" font-size="16" font-weight="600">${escapeXml(title)}</text>` : ''}
+      <circle cx="${centerX}" cy="${centerY}" r="${radius}" fill="none" stroke="#e5e7eb" stroke-width="2" />
+      ${chartType === 'doughnut' ? `<circle cx="${centerX}" cy="${centerY}" r="${innerRadius}" fill="white" stroke="#e5e7eb" stroke-width="2" />` : ''}
+      <text x="${centerX}" y="${centerY + 4}" text-anchor="middle" fill="#9ca3af" font-size="14">No data</text>
+    </svg>`;
+  }
+
   let currentAngle = -Math.PI / 2;
   const slices: string[] = [];
 
   values.forEach((value, index) => {
-    const sliceAngle = (value / total) * 2 * Math.PI;
+    const sliceAngle = (value / (total || 1)) * 2 * Math.PI;
     const color = colors[index % colors.length];
 
     const x1 = centerX + radius * Math.cos(currentAngle);
@@ -240,7 +277,7 @@ function generatePieChart(
   if (showLegend) {
     const legendItems = labels.map((label, i) => {
       const color = colors[i % colors.length];
-      const percentage = ((values[i] / total) * 100).toFixed(1);
+      const percentage = ((values[i] / (total || 1)) * 100).toFixed(1);
       return `<g transform="translate(0, ${i * 20})">
         <rect x="0" y="0" width="12" height="12" fill="${color}" rx="2" />
         <text x="18" y="10" fill="#374151" font-size="11">${escapeXml(label)} (${percentage}%)</text>
@@ -307,6 +344,10 @@ export async function renderChartToImage(config: ChartBlockProps, data?: ChartDa
   const chartData = data || config.staticData;
   if (!chartData) {
     throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Chart data is required', 400);
+  }
+
+  if (!Array.isArray(chartData.labels) || !Array.isArray(chartData.datasets)) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Chart data must include labels and datasets arrays', 400);
   }
 
   const svg = generateChartSvg({

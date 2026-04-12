@@ -871,7 +871,7 @@ function ChartRenderer({ block }: CustomBlockRendererProps) {
     }
 
     const staticData = props.staticData;
-    if (!staticData) return [];
+    if (!staticData?.labels?.length || !staticData?.datasets?.length) return [];
 
     return staticData.labels.map((label, index) => {
       const point: Record<string, string | number> = { name: label };
@@ -884,7 +884,7 @@ function ChartRenderer({ block }: CustomBlockRendererProps) {
 
   const datasetNames = useMemo(() => {
     if (props.dataSource === 'dynamic') return ['value'];
-    return props.staticData?.datasets.map((d) => d.name) || ['value'];
+    return props.staticData?.datasets?.map((d) => d.name) || ['value'];
   }, [props.dataSource, props.staticData]);
 
   // Pie chart data format
@@ -898,7 +898,7 @@ function ChartRenderer({ block }: CustomBlockRendererProps) {
     }
 
     const staticData = props.staticData;
-    if (!staticData) return [];
+    if (!staticData?.labels?.length || !staticData?.datasets?.length) return [];
 
     return staticData.labels.map((label, index) => ({
       name: label,

@@ -16,6 +16,7 @@ import { teamsRoutes } from './modules/teams/teams.routes';
 import { uploadsRoutes } from './modules/uploads/uploads.routes';
 import { billingRoutes } from './modules/billing/billing.routes';
 import { polarWebhookRoutes } from './modules/billing/polar-webhook.routes';
+import { providerCallbackRoutes } from './modules/provider-callbacks/provider-callbacks.routes';
 
 export async function buildApp() {
   const app = Fastify({
@@ -115,6 +116,10 @@ export async function buildApp() {
   await app.register(uploadsRoutes, { prefix: '/api/uploads' });
   await app.register(billingRoutes, { prefix: '/api/billing' });
   await app.register(polarWebhookRoutes, { prefix: '/api/webhooks/polar' });
+
+  if (env.PROVIDER_CALLBACKS_ENABLED) {
+    await app.register(providerCallbackRoutes, { prefix: '/api/callbacks' });
+  }
 
   return app;
 }

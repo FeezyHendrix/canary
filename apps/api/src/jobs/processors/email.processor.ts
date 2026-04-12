@@ -12,6 +12,10 @@ import type { EmailJobData } from '../queues';
 import type { AdapterType, ChartBlockProps, ChartData } from '@canary/shared';
 import { env } from '../../lib/env';
 import { nanoid } from 'nanoid';
+import {
+  triggerWebhooks,
+  buildEmailEventPayload,
+} from '../../modules/webhooks/webhook-trigger.service';
 
 function stripHtml(html: string): string {
   return html
@@ -58,13 +62,23 @@ async function processChartBlocks(
 ): Promise<{
   attachments: Array<{ filename: string; content: Buffer; contentType: string; cid: string }>;
   replacements: Map<string, string>;
+  warnings: string[];
 }> {
-  const attachments: Array<{ filename: string; content: Buffer; contentType: string; cid: string }> = [];
+  const attachments: Array<{
+    filename: string;
+    content: Buffer;
+    contentType: string;
+    cid: string;
+  }> = [];
   const replacements = new Map<string, string>();
+  const warnings: string[] = [];
 
   if (!isChartRenderingEnabled()) {
+    warnings.push(
+      'Chart rendering not available: Gotenberg is not configured. All chart blocks will appear as placeholders.'
+    );
     console.warn('[worker] Chart rendering not available (Gotenberg not configured)');
-    return { attachments, replacements };
+    return { attachments, replacements, warnings };
   }
 
   for (const chart of chartBlocks) {
@@ -75,7 +89,9 @@ async function processChartBlocks(
         // Get chart data from variables
         chartData = variables[chart.props.dynamicVariable] as ChartData | undefined;
         if (!chartData) {
-          console.warn(`[worker] Chart data variable '${chart.props.dynamicVariable}' not found`);
+          const msg = `Chart block '${chart.blockId}': dynamic variable '${chart.props.dynamicVariable}' not found in payload`;
+          warnings.push(msg);
+          console.warn(`[worker] ${msg}`);
           continue;
         }
       } else if (chart.props.dataSource === 'static' && chart.props.staticData) {
@@ -83,7 +99,9 @@ async function processChartBlocks(
       }
 
       if (!chartData) {
-        console.warn(`[worker] No chart data available for block ${chart.blockId}`);
+        const msg = `Chart block '${chart.blockId}': no chart data available (dataSource='${chart.props.dataSource}')`;
+        warnings.push(msg);
+        console.warn(`[worker] ${msg}`);
         continue;
       }
 
@@ -105,7 +123,7 @@ async function processChartBlocks(
     }
   }
 
-  return { attachments, replacements };
+  return { attachments, replacements, warnings };
 }
 
 /**
@@ -124,8 +142,9 @@ function replaceChartPlaceholders(
       // Replace chart placeholder with image tag
       // The placeholder format depends on how the email builder serializes charts
       // We'll look for a div/span with data-chart-id or similar pattern
+      // Match attributes in either order to handle renderToStaticMarkup reordering
       const placeholder = new RegExp(
-        `<div[^>]*data-block-type="Chart"[^>]*data-block-id="${chart.blockId}"[^>]*>.*?</div>`,
+        `<div[^>]*(?:data-block-type="Chart"[^>]*data-block-id="${chart.blockId}"|data-block-id="${chart.blockId}"[^>]*data-block-type="Chart")[^>]*>.*?</div>`,
         'gs'
       );
       const imgTag = `<img src="cid:${cid}" alt="${chart.props.title || 'Chart'}" width="${chart.props.width}" height="${chart.props.height}" style="display:block;max-width:100%;" />`;
@@ -167,20 +186,38 @@ export function createEmailWorker() {
       let html = renderTemplate(template.compiledHtml || '', variables);
       const renderedSubject = renderTemplate(subject, variables);
 
-      const attachments: Array<{ filename: string; content: Buffer; contentType: string; cid?: string }> = [];
+      const attachments: Array<{
+        filename: string;
+        content: Buffer;
+        contentType: string;
+        cid?: string;
+      }> = [];
+      let emailWarnings: string[] = [];
 
       // Process chart blocks
       const chartBlocks = extractChartBlocks(template.designJson as Record<string, unknown>);
-      console.log(`[worker] Found ${chartBlocks.length} chart blocks:`, chartBlocks.map(c => ({ blockId: c.blockId, type: c.props.chartType })));
+      console.log(
+        `[worker] Found ${chartBlocks.length} chart blocks:`,
+        chartBlocks.map((c) => ({ blockId: c.blockId, type: c.props.chartType }))
+      );
 
       if (chartBlocks.length > 0) {
         console.log('[worker] Processing chart blocks...');
-        const { attachments: chartAttachments, replacements } = await processChartBlocks(
-          chartBlocks,
-          variables
-        );
+        const {
+          attachments: chartAttachments,
+          replacements,
+          warnings: chartWarnings,
+        } = await processChartBlocks(chartBlocks, variables);
 
-        console.log(`[worker] Rendered ${chartAttachments.length} chart images, replacements:`, Array.from(replacements.entries()));
+        if (chartWarnings.length > 0) {
+          emailWarnings = emailWarnings.concat(chartWarnings);
+          console.warn('[worker] Chart rendering warnings:', chartWarnings);
+        }
+
+        console.log(
+          `[worker] Rendered ${chartAttachments.length} chart images, replacements:`,
+          Array.from(replacements.entries())
+        );
 
         // Add chart images as CID attachments
         for (const chartAttachment of chartAttachments) {
@@ -192,11 +229,18 @@ export function createEmailWorker() {
         html = replaceChartPlaceholders(html, chartBlocks, replacements);
 
         if (html === htmlBefore) {
-          console.warn('[worker] HTML unchanged after chart replacement - placeholder regex may not match');
+          console.warn(
+            '[worker] HTML unchanged after chart replacement - placeholder regex may not match'
+          );
           // Log a snippet of the HTML to debug
           const snippetStart = html.indexOf('data-block-type');
           if (snippetStart > -1) {
-            console.log('[worker] Found data-block-type at index', snippetStart, ':', html.substring(snippetStart, snippetStart + 200));
+            console.log(
+              '[worker] Found data-block-type at index',
+              snippetStart,
+              ':',
+              html.substring(snippetStart, snippetStart + 200)
+            );
           } else {
             console.log('[worker] No data-block-type attribute found in HTML');
           }
@@ -265,7 +309,18 @@ export function createEmailWorker() {
           })
           .where(eq(emailLogs.id, emailLogId));
 
-        return { success: true, messageId: result.messageId };
+        const eventPayload = await buildEmailEventPayload(emailLogId);
+        if (eventPayload) {
+          triggerWebhooks({ teamId, event: 'email.sent', data: eventPayload.data }).catch((err) =>
+            console.error('[worker] Webhook trigger failed:', err)
+          );
+        }
+
+        return {
+          success: true,
+          messageId: result.messageId,
+          ...(emailWarnings.length > 0 && { warnings: emailWarnings }),
+        };
       }
 
       throw new Error(result.error?.message || 'Failed to send email');
@@ -291,6 +346,15 @@ export function createEmailWorker() {
           errorMessage: err.message,
         })
         .where(eq(emailLogs.id, job.data.emailLogId));
+
+      const eventPayload = await buildEmailEventPayload(job.data.emailLogId);
+      if (eventPayload) {
+        triggerWebhooks({
+          teamId: job.data.teamId,
+          event: 'email.failed',
+          data: { ...eventPayload.data, error: err.message },
+        }).catch((triggerErr) => console.error('[worker] Webhook trigger failed:', triggerErr));
+      }
     }
   });
 

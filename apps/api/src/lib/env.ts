@@ -5,7 +5,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3001),
   DATABASE_URL: z.string(),
   REDIS_URL: z.string(),
-  ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes for AES-256)'),
+  ENCRYPTION_KEY: z
+    .string()
+    .length(64, 'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes for AES-256)'),
   SESSION_SECRET: z.string().min(32),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
@@ -28,7 +30,6 @@ const envSchema = z.object({
     .transform((val) => val === 'true')
     .default('true'),
   WORKER_CONCURRENCY: z.coerce.number().default(5),
-  // Polar.sh Billing
   POLAR_ACCESS_TOKEN: z.string().optional(),
   POLAR_WEBHOOK_SECRET: z.string().optional(),
   POLAR_ORGANIZATION_ID: z.string().optional(),
@@ -36,6 +37,15 @@ const envSchema = z.object({
   POLAR_PRO_ANNUAL_PRICE_ID: z.string().optional(),
   POLAR_TEAM_MONTHLY_PRICE_ID: z.string().optional(),
   POLAR_TEAM_ANNUAL_PRICE_ID: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().email().optional(),
+  PROVIDER_CALLBACKS_ENABLED: z
+    .string()
+    .transform((val) => val === 'true')
+    .default('false'),
 });
 
 export type Env = z.infer<typeof envSchema>;
