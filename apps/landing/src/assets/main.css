@@ -7,7 +7,45 @@ body {
   padding: 0;
   width: 100%;
   font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Code block highlighting */
+.code-block {
+  font-family: "Geist", monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.token.keyword {
+  color: #c678dd;
+}
+.token.string {
+  color: #98c379;
+}
+.token.function {
+  color: #61afef;
+}
+.token.property {
+  color: #e06c75;
+}
+.token.comment {
+  color: #5c6370;
+}
+.token.punctuation {
+  color: #abb2bf;
+}
+.token.number {
+  color: #d19a66;
+}
+.token.operator {
+  color: #56b6c2;
+}
+.token.boolean {
+  color: #d19a66;
+}
+
 .font-neue {
   font-family: "PP Neue Montreal", sans-serif;
 }

@@ -1,54 +1,46 @@
-<script setup></script>
+<script setup lang="ts">
+// Email Builder section showing the drag and drop interface
+</script>
 
 <template>
-  <div
-    class="gap-6 max-md:flex-col max-md:items-center md:mr-20 md:ml-12 md:flex md:h-120 xl:ml-20 xl:h-128"
-  >
-    <div class="w-4/5 max-md:ml-4 md:mt-24 md:w-55/100 xl:w-3/5">
-      <h1
-        class="font-geist text-2xl font-semibold md:text-3xl lg:text-4xl xl:text-6xl"
-      >
-        <span class="font-tiempos font-normal text-[#7B00D8] italic"
-          >Drag, drop, and deploy</span
+  <section class="bg-white py-24 sm:py-32">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <div class="mx-auto max-w-3xl text-center">
+        <h2
+          class="text-sm font-semibold tracking-wider text-[#7B00D8] uppercase"
         >
-        production-ready email templates in
-        <span class="font-tiempos font-normal text-[#7B00D8] italic"
-          >seconds</span
+          Email Builder
+        </h2>
+        <p
+          class="mt-2 text-3xl font-bold tracking-tight text-[#0A0A0A] sm:text-5xl"
         >
-      </h1>
+          Drag. Drop. Send.
+        </p>
+        <p class="mt-6 text-lg leading-8 text-[#6B7280]">
+          No-code drag-and-drop editor for visual emails.<br
+            class="hidden sm:block"
+          />
+          Switch to HTML anytime for full control.
+        </p>
+      </div>
 
-      <p class="mt-3 text-xs font-medium md:text-sm xl:w-7/10 xl:text-base">
-        Stop hand-coding responsive HTML. Canary is a developer-first platform
-        to design pixel-perfect templates visually, automate delivery via a
-        robust API, and self-host on your own infrastructure with total provider
-        flexibility
-      </p>
-
-      <div class="mt-6 flex gap-2">
-        <button
-          class="shadow-[inset_0_2px_4px_rgba(0,0,0,0.3) cursor-pointer rounded-lg bg-[#7B00D8] px-3 py-2 text-sm font-semibold text-white hover:bg-[#9310F6]"
+      <div class="mt-16 sm:mt-24">
+        <div
+          class="overflow-hidden rounded-2xl bg-gray-50/50 p-2 shadow-xl ring-1 ring-gray-200 sm:p-4"
         >
-          Get Started
-        </button>
-
-        <a href="https://github.com/FeezyHendrix/canary" target="_blank">
-          <button
-            class="flex cursor-pointer items-center gap-1 rounded-lg border border-[#EBE6E6] bg-[#FFFFFF] px-3 py-2 font-semibold hover:border-[#DED9D9] hover:bg-[#FAFAFA]"
-          >
-            <span><img src="/icons/github.png" alt="GitHub" class="size-5" /></span>
-            View On Github
-          </button></a
-        >
+          <!-- Main builder image -->
+          <img
+            src="/images/illustrationDesktop.svg"
+            alt="Canary visual drag and drop email builder interface"
+            class="hidden w-full rounded-xl border border-gray-200 shadow-sm md:block"
+          />
+          <img
+            src="/images/illustrationMobile.svg"
+            alt="Canary visual drag and drop email builder interface mobile"
+            class="w-full rounded-xl border border-gray-200 shadow-sm md:hidden"
+          />
+        </div>
       </div>
     </div>
-
-    <div class="flex h-full flex-1 max-md:mt-10">
-      <img
-        src="/images/illustrationDesktop.svg"
-        alt="Canary email template builder interface"
-        class="hidden h-full object-contain md:block"
-      />
-      <img src="/images/illustrationMobile.svg" alt="Canary email template builder interface" class="md:hidden" />
-    </div>
-  </div>
+  </section>
 </template>
