@@ -115,6 +115,61 @@
         </div>
       </div>
 
+      <!-- Delivery Timeline -->
+      <div class="mx-auto mt-12 max-w-2xl sm:mt-16">
+        <div
+          class="mb-6 text-center text-xs font-medium tracking-wider text-gray-500 uppercase"
+        >
+          Delivery Timeline
+        </div>
+        <div class="flex items-start justify-between">
+          <!-- Step 1: Queued -->
+          <div class="flex w-16 flex-col items-center gap-2">
+            <div class="h-3 w-3 rounded-full bg-emerald-500"></div>
+            <div class="flex flex-col items-center">
+              <span class="text-xs text-[#6B7280]">Queued</span>
+              <span class="font-mono text-sm text-[#0A0A0A]">0ms</span>
+            </div>
+          </div>
+
+          <!-- Line -->
+          <div class="mt-1.5 h-px flex-1 bg-gray-200"></div>
+
+          <!-- Step 2: Sent -->
+          <div class="flex w-16 flex-col items-center gap-2">
+            <div class="h-3 w-3 rounded-full bg-emerald-500"></div>
+            <div class="flex flex-col items-center">
+              <span class="text-xs text-[#6B7280]">Sent</span>
+              <span class="font-mono text-sm text-[#0A0A0A]">84ms</span>
+            </div>
+          </div>
+
+          <!-- Line -->
+          <div class="mt-1.5 h-px flex-1 bg-gray-200"></div>
+
+          <!-- Step 3: Delivered -->
+          <div class="flex w-16 flex-col items-center gap-2">
+            <div class="h-3 w-3 rounded-full bg-emerald-500"></div>
+            <div class="flex flex-col items-center">
+              <span class="text-xs text-[#6B7280]">Delivered</span>
+              <span class="font-mono text-sm text-[#0A0A0A]">240ms</span>
+            </div>
+          </div>
+
+          <!-- Line -->
+          <div class="mt-1.5 h-px flex-1 bg-gray-200"></div>
+
+          <!-- Step 4: Opened -->
+          <div class="flex w-16 flex-col items-center gap-2">
+            <div class="h-3 w-3 rounded-full bg-emerald-500"></div>
+            <div class="flex flex-col items-center">
+              <span class="text-xs text-[#6B7280]">Opened</span>
+              <span class="font-mono text-sm text-[#0A0A0A]">1.2s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Stats Bar -->
       <div
         class="mx-auto mt-16 max-w-4xl border-t border-gray-100 pt-10 sm:mt-20 sm:pt-16"

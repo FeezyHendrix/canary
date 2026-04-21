@@ -1,4 +1,8 @@
-<script setup lang="ts">
+<script setup>
+import { ref } from "vue";
+
+const activeCard2Tab = ref("Overview");
+const activeCard3Tab = ref("REST API");
 // Features section matching the 4-card grid layout spec
 </script>
 
@@ -130,52 +134,160 @@
               class="mb-4 flex items-center gap-4 border-b border-gray-200 pb-3"
             >
               <div
-                class="-mb-[14px] border-b-2 border-[#0A0A0A] pb-3 text-sm font-semibold text-[#0A0A0A]"
+                @click="activeCard2Tab = 'Overview'"
+                class="-mb-[14px] cursor-pointer pb-3 text-sm"
+                :class="
+                  activeCard2Tab === 'Overview'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
               >
                 Overview
               </div>
-              <div class="-mb-[14px] pb-3 text-sm font-medium text-[#6B7280]">
+              <div
+                @click="activeCard2Tab = 'Templates'"
+                class="-mb-[14px] cursor-pointer pb-3 text-sm"
+                :class="
+                  activeCard2Tab === 'Templates'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
                 Templates
               </div>
-              <div class="-mb-[14px] pb-3 text-sm font-medium text-[#6B7280]">
+              <div
+                @click="activeCard2Tab = 'Logs'"
+                class="-mb-[14px] cursor-pointer pb-3 text-sm"
+                :class="
+                  activeCard2Tab === 'Logs'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
                 Logs
               </div>
             </div>
-            <div class="mb-4 grid grid-cols-2 gap-3">
-              <div class="rounded border border-gray-100 bg-white p-3">
-                <div class="mb-1 text-xs text-[#6B7280]">Sent</div>
-                <div class="font-semibold text-[#0A0A0A]">24,891</div>
+            <div v-if="activeCard2Tab === 'Overview'">
+              <div class="mb-4 grid grid-cols-2 gap-3">
+                <div class="rounded border border-gray-100 bg-white p-3">
+                  <div class="mb-1 text-xs text-[#6B7280]">Sent</div>
+                  <div class="font-semibold text-[#0A0A0A]">24,891</div>
+                </div>
+                <div class="rounded border border-gray-100 bg-white p-3">
+                  <div class="mb-1 text-xs text-[#6B7280]">Delivered</div>
+                  <div class="font-semibold text-[#0A0A0A]">24,612</div>
+                </div>
+                <div class="rounded border border-gray-100 bg-white p-3">
+                  <div class="mb-1 text-xs text-[#6B7280]">Opened</div>
+                  <div class="font-semibold text-[#0A0A0A]">12,305</div>
+                </div>
+                <div class="rounded border border-gray-100 bg-white p-3">
+                  <div class="mb-1 text-xs text-[#6B7280]">Clicked</div>
+                  <div class="font-semibold text-[#0A0A0A]">3,841</div>
+                </div>
               </div>
-              <div class="rounded border border-gray-100 bg-white p-3">
-                <div class="mb-1 text-xs text-[#6B7280]">Delivered</div>
-                <div class="font-semibold text-[#0A0A0A]">24,612</div>
-              </div>
-              <div class="rounded border border-gray-100 bg-white p-3">
-                <div class="mb-1 text-xs text-[#6B7280]">Opened</div>
-                <div class="font-semibold text-[#0A0A0A]">12,305</div>
-              </div>
-              <div class="rounded border border-gray-100 bg-white p-3">
-                <div class="mb-1 text-xs text-[#6B7280]">Clicked</div>
-                <div class="font-semibold text-[#0A0A0A]">3,841</div>
+              <div
+                class="relative flex h-20 items-end justify-between overflow-hidden rounded border border-gray-100 bg-white p-3"
+              >
+                <div
+                  class="absolute top-3 left-3 text-xs font-medium text-[#6B7280]"
+                >
+                  Templates created — last 30 days
+                  <span class="ml-1 font-semibold text-emerald-500">↑ 23%</span>
+                </div>
+                <div class="mt-6 flex h-8 w-full items-end gap-1 opacity-40">
+                  <div class="h-[40%] w-full rounded-t-sm bg-[#7B00D8]"></div>
+                  <div class="h-[60%] w-full rounded-t-sm bg-[#7B00D8]"></div>
+                  <div class="h-[30%] w-full rounded-t-sm bg-[#7B00D8]"></div>
+                  <div class="h-[80%] w-full rounded-t-sm bg-[#7B00D8]"></div>
+                  <div class="h-[50%] w-full rounded-t-sm bg-[#7B00D8]"></div>
+                  <div class="h-[90%] w-full rounded-t-sm bg-[#7B00D8]"></div>
+                  <div class="h-[100%] w-full rounded-t-sm bg-[#7B00D8]"></div>
+                </div>
               </div>
             </div>
+
             <div
-              class="relative flex h-20 items-end justify-between overflow-hidden rounded border border-gray-100 bg-white p-3"
+              v-else-if="activeCard2Tab === 'Templates'"
+              class="flex h-[184px] flex-col gap-3"
             >
               <div
-                class="absolute top-3 left-3 text-xs font-medium text-[#6B7280]"
+                class="flex items-center justify-between rounded border border-gray-100 bg-white p-3"
               >
-                Templates created — last 30 days
-                <span class="ml-1 font-semibold text-emerald-500">↑ 23%</span>
+                <span class="text-sm font-medium text-[#0A0A0A]"
+                  >Welcome Email</span
+                >
+                <span
+                  class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-emerald-500 uppercase"
+                  >Active</span
+                >
               </div>
-              <div class="mt-6 flex h-8 w-full items-end gap-1 opacity-40">
-                <div class="h-[40%] w-full rounded-t-sm bg-[#7B00D8]"></div>
-                <div class="h-[60%] w-full rounded-t-sm bg-[#7B00D8]"></div>
-                <div class="h-[30%] w-full rounded-t-sm bg-[#7B00D8]"></div>
-                <div class="h-[80%] w-full rounded-t-sm bg-[#7B00D8]"></div>
-                <div class="h-[50%] w-full rounded-t-sm bg-[#7B00D8]"></div>
-                <div class="h-[90%] w-full rounded-t-sm bg-[#7B00D8]"></div>
-                <div class="h-[100%] w-full rounded-t-sm bg-[#7B00D8]"></div>
+              <div
+                class="flex items-center justify-between rounded border border-gray-100 bg-white p-3"
+              >
+                <span class="text-sm font-medium text-[#0A0A0A]"
+                  >Password Reset</span
+                >
+                <span
+                  class="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-emerald-500 uppercase"
+                  >Active</span
+                >
+              </div>
+              <div
+                class="flex items-center justify-between rounded border border-gray-100 bg-white p-3"
+              >
+                <span class="text-sm font-medium text-[#0A0A0A]"
+                  >Weekly Newsletter</span
+                >
+                <span
+                  class="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-gray-500 uppercase"
+                  >Draft</span
+                >
+              </div>
+            </div>
+
+            <div
+              v-else-if="activeCard2Tab === 'Logs'"
+              class="flex h-[184px] flex-col gap-3"
+            >
+              <div class="rounded border border-gray-100 bg-white p-3 text-sm">
+                <div
+                  class="mb-1 text-[10px] font-semibold tracking-wider text-[#6B7280] uppercase"
+                >
+                  10:42 AM
+                </div>
+                <div class="text-sm text-[#0A0A0A]">
+                  Email sent to
+                  <span class="font-mono text-xs text-[#6B7280]"
+                    >j***@gmail.com</span
+                  >
+                </div>
+              </div>
+              <div class="rounded border border-gray-100 bg-white p-3 text-sm">
+                <div
+                  class="mb-1 text-[10px] font-semibold tracking-wider text-[#6B7280] uppercase"
+                >
+                  10:41 AM
+                </div>
+                <div class="text-sm text-[#0A0A0A]">
+                  Email opened by
+                  <span class="font-mono text-xs text-[#6B7280]"
+                    >a***@hey.com</span
+                  >
+                </div>
+              </div>
+              <div class="rounded border border-gray-100 bg-white p-3 text-sm">
+                <div
+                  class="mb-1 text-[10px] font-semibold tracking-wider text-[#6B7280] uppercase"
+                >
+                  10:38 AM
+                </div>
+                <div class="text-sm text-[#0A0A0A]">
+                  Email sent to
+                  <span class="font-mono text-xs text-[#6B7280]"
+                    >r***@yahoo.com</span
+                  >
+                </div>
               </div>
             </div>
           </div>
@@ -197,41 +309,176 @@
               class="no-scrollbar mb-4 flex gap-4 overflow-x-auto border-b border-gray-100 pb-3"
             >
               <div
-                class="text-xs font-semibold whitespace-nowrap text-[#0A0A0A]"
+                @click="activeCard3Tab = 'REST API'"
+                class="-mb-[13px] cursor-pointer pb-3 text-xs whitespace-nowrap"
+                :class="
+                  activeCard3Tab === 'REST API'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
               >
                 REST API
               </div>
-              <div class="text-xs font-medium whitespace-nowrap text-[#6B7280]">
+              <div
+                @click="activeCard3Tab = 'SMTP'"
+                class="-mb-[13px] cursor-pointer pb-3 text-xs whitespace-nowrap"
+                :class="
+                  activeCard3Tab === 'SMTP'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
                 SMTP
               </div>
-              <div class="text-xs font-medium whitespace-nowrap text-[#6B7280]">
+              <div
+                @click="activeCard3Tab = 'Node.js'"
+                class="-mb-[13px] cursor-pointer pb-3 text-xs whitespace-nowrap"
+                :class="
+                  activeCard3Tab === 'Node.js'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
                 Node.js
               </div>
-              <div class="text-xs font-medium whitespace-nowrap text-[#6B7280]">
+              <div
+                @click="activeCard3Tab = 'Python'"
+                class="-mb-[13px] cursor-pointer pb-3 text-xs whitespace-nowrap"
+                :class="
+                  activeCard3Tab === 'Python'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
                 Python
               </div>
-              <div class="text-xs font-medium whitespace-nowrap text-[#6B7280]">
+              <div
+                @click="activeCard3Tab = 'Go'"
+                class="-mb-[13px] cursor-pointer pb-3 text-xs whitespace-nowrap"
+                :class="
+                  activeCard3Tab === 'Go'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
                 Go
+              </div>
+              <div
+                @click="activeCard3Tab = 'PHP'"
+                class="-mb-[13px] cursor-pointer pb-3 text-xs whitespace-nowrap"
+                :class="
+                  activeCard3Tab === 'PHP'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
+                PHP
+              </div>
+              <div
+                @click="activeCard3Tab = 'Ruby'"
+                class="-mb-[13px] cursor-pointer pb-3 text-xs whitespace-nowrap"
+                :class="
+                  activeCard3Tab === 'Ruby'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
+                Ruby
+              </div>
+              <div
+                @click="activeCard3Tab = 'cURL'"
+                class="-mb-[13px] cursor-pointer pb-3 text-xs whitespace-nowrap"
+                :class="
+                  activeCard3Tab === 'cURL'
+                    ? 'border-b-2 border-[#0A0A0A] font-semibold text-[#0A0A0A]'
+                    : 'font-medium text-[#6B7280]'
+                "
+              >
+                cURL
               </div>
             </div>
             <div class="overflow-hidden rounded-lg bg-[#0A0A0A]">
               <div
                 class="flex border-b border-[#2A2A2A] bg-[#1A1A1A] px-4 py-2"
               >
-                <div class="font-mono text-[11px] text-gray-300">send.ts</div>
+                <div class="font-mono text-[11px] text-gray-300">
+                  <span v-if="activeCard3Tab === 'REST API'">send.ts</span>
+                  <span v-else-if="activeCard3Tab === 'SMTP'">smtp.conf</span>
+                  <span v-else-if="activeCard3Tab === 'Node.js'">send.js</span>
+                  <span v-else-if="activeCard3Tab === 'Python'">send.py</span>
+                  <span v-else-if="activeCard3Tab === 'Go'">send.go</span>
+                  <span v-else-if="activeCard3Tab === 'PHP'">send.php</span>
+                  <span v-else-if="activeCard3Tab === 'Ruby'">send.rb</span>
+                  <span v-else-if="activeCard3Tab === 'cURL'">send.sh</span>
+                </div>
                 <div class="ml-4 font-mono text-[11px] text-gray-600">
-                  package.json
+                  <span
+                    v-if="
+                      activeCard3Tab === 'REST API' ||
+                      activeCard3Tab === 'Node.js'
+                    "
+                    >package.json</span
+                  >
+                  <span v-else-if="activeCard3Tab === 'Python'"
+                    >requirements.txt</span
+                  >
+                  <span v-else-if="activeCard3Tab === 'Go'">go.mod</span>
+                  <span v-else-if="activeCard3Tab === 'PHP'"
+                    >composer.json</span
+                  >
+                  <span v-else-if="activeCard3Tab === 'Ruby'">Gemfile</span>
                 </div>
               </div>
               <pre
                 class="overflow-x-auto p-4"
-              ><code class="text-sm font-mono leading-relaxed text-gray-300"><span class="text-[#7B00D8]">await</span> canary.emails.<span class="text-blue-400">send</span>({
+              ><code class="text-sm font-mono leading-relaxed text-gray-300"><template v-if="activeCard3Tab === 'REST API'"><span class="text-[#7B00D8]">await</span> canary.emails.<span class="text-blue-400">send</span>({
   from: <span class="text-emerald-400">'noreply@yourapp.com'</span>,
   to: <span class="text-emerald-400">'user@example.com'</span>,
   subject: <span class="text-emerald-400">'Hello'</span>,
   templateId: <span class="text-emerald-400">'welcome'</span>,
   variables: { name: <span class="text-emerald-400">'Alex'</span> }
-});</code></pre>
+});</template><template v-else-if="activeCard3Tab === 'SMTP'">HOST=smtp.canary.com
+PORT=587
+USER=api_key
+PASS=cnry_your_api_key</template><template v-else-if="activeCard3Tab === 'Node.js'"><span class="text-[#7B00D8]">const</span> canary = <span class="text-blue-400">require</span>(<span class="text-emerald-400">'@canary/sdk'</span>);
+
+canary.<span class="text-blue-400">init</span>(<span class="text-emerald-400">'cnry_your_api_key'</span>);
+
+<span class="text-[#7B00D8]">await</span> canary.emails.<span class="text-blue-400">send</span>({
+  to: <span class="text-emerald-400">'user@example.com'</span>,
+  template: <span class="text-emerald-400">'welcome'</span>
+});</template><template v-else-if="activeCard3Tab === 'Python'"><span class="text-[#7B00D8]">import</span> canary
+
+client = canary.<span class="text-blue-400">Client</span>(api_key=<span class="text-emerald-400">'cnry_your_api_key'</span>)
+
+client.emails.<span class="text-blue-400">send</span>(
+    to=<span class="text-emerald-400">'user@example.com'</span>,
+    template_id=<span class="text-emerald-400">'welcome'</span>
+)</template><template v-else-if="activeCard3Tab === 'Go'"><span class="text-[#7B00D8]">package</span> main
+
+<span class="text-[#7B00D8]">import</span> <span class="text-emerald-400">"github.com/canary/canary-go"</span>
+
+<span class="text-[#7B00D8]">func</span> <span class="text-blue-400">main</span>() {
+    client := canary.<span class="text-blue-400">NewClient</span>(<span class="text-emerald-400">"cnry_your_api_key"</span>)
+    
+    client.<span class="text-blue-400">Send</span>(&canary.Email{
+        To:       <span class="text-emerald-400">"user@example.com"</span>,
+        Template: <span class="text-emerald-400">"welcome"</span>,
+    })
+}</template><template v-else-if="activeCard3Tab === 'PHP'">$canary = <span class="text-[#7B00D8]">new</span> <span class="text-blue-400">Canary</span>(<span class="text-emerald-400">'cnry_your_api_key'</span>);
+
+$canary->emails-><span class="text-blue-400">send</span>([
+    <span class="text-emerald-400">'to'</span> => <span class="text-emerald-400">'user@example.com'</span>,
+    <span class="text-emerald-400">'template'</span> => <span class="text-emerald-400">'welcome'</span>
+]);</template><template v-else-if="activeCard3Tab === 'Ruby'">canary = Canary::Client.<span class="text-blue-400">new</span>(<span class="text-emerald-400">'cnry_your_api_key'</span>)
+
+canary.emails.<span class="text-blue-400">send</span>(
+  to: <span class="text-emerald-400">'user@example.com'</span>,
+  template: <span class="text-emerald-400">'welcome'</span>
+)</template><template v-else-if="activeCard3Tab === 'cURL'">curl -X POST https://api.canary.email/v1/send \
+  -H <span class="text-emerald-400">"Authorization: Bearer cnry_your_api_key"</span> \
+  -H <span class="text-emerald-400">"Content-Type: application/json"</span> \
+  -d <span class="text-emerald-400">'{"to":"user@example.com","template":"welcome"}'</span></template></code></pre>
             </div>
           </div>
         </div>
