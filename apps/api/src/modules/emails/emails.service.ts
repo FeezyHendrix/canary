@@ -5,6 +5,7 @@ import { getDefaultAdapter } from '../adapters/adapters.service';
 import { NotFoundError, AppError } from '../../lib/errors';
 import { ERROR_CODES } from '@canary/shared';
 import { emailQueue } from '../../jobs/queues';
+import { isChartRenderingEnabled } from '../../services/chart.service';
 import type { SendEmailInput } from './emails.schema';
 
 export async function sendEmail(teamId: string, apiKeyId: string, input: SendEmailInput) {
@@ -70,10 +71,23 @@ export async function sendEmail(teamId: string, apiKeyId: string, input: SendEma
 
   await db.update(emailLogs).set({ jobId: job.id }).where(eq(emailLogs.id, log.id));
 
+  // Check if template has chart blocks but Gotenberg isn't configured
+  const warnings: string[] = [];
+  const designJson = template.designJson as Record<string, unknown> | null;
+  if (designJson) {
+    const hasChartBlocks = Object.values(designJson).some(
+      (block) => block && typeof block === 'object' && (block as Record<string, unknown>).type === 'Chart'
+    );
+    if (hasChartBlocks && !isChartRenderingEnabled()) {
+      warnings.push('Template contains chart blocks but chart rendering is not configured (Gotenberg URL missing). Charts will appear as placeholders.');
+    }
+  }
+
   return {
     id: log.id,
     jobId: job.id,
     status: 'queued' as const,
+    ...(warnings.length > 0 && { warnings }),
   };
 }
 

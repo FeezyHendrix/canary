@@ -33,6 +33,11 @@ import { authRateLimiters } from './middleware/rate-limit';
 import { db } from '../../db';
 import { users } from '../../db/schema';
 import { eq } from 'drizzle-orm';
+import {
+  sendSystemEmail,
+  buildVerificationEmail,
+  buildPasswordResetEmail,
+} from '../../services/system-email.service';
 
 function parseRedirectFromState(state?: string): string {
   if (!state) return '/';
@@ -194,12 +199,13 @@ export async function authRoutes(app: FastifyInstance) {
       throw new ValidationError('Password does not meet requirements', { errors });
     }
 
-    const { verificationToken } = await registerWithPassword(input);
+    const { verificationToken, user } = await registerWithPassword(input);
 
-    // TODO: Send verification email using adapters system
-    // For development, log the token
-    if (env.NODE_ENV === 'development') {
-      request.log.info({ verificationToken }, 'Email verification token generated');
+    const { subject, html } = buildVerificationEmail(verificationToken);
+    const sent = await sendSystemEmail({ to: user.email, subject, html });
+
+    if (!sent && env.NODE_ENV === 'development') {
+      request.log.info({ verificationToken }, 'Email verification token (SMTP not configured)');
     }
 
     return {
@@ -254,9 +260,14 @@ export async function authRoutes(app: FastifyInstance) {
 
       if (user && !user.emailVerified) {
         const token = await createVerificationToken(user.id);
-        // TODO: Send verification email
-        if (env.NODE_ENV === 'development') {
-          request.log.info({ verificationToken: token }, 'Verification token generated');
+        const { subject, html } = buildVerificationEmail(token);
+        const sent = await sendSystemEmail({ to: user.email, subject, html });
+
+        if (!sent && env.NODE_ENV === 'development') {
+          request.log.info(
+            { verificationToken: token },
+            'Verification token (SMTP not configured)'
+          );
         }
       }
 
@@ -273,8 +284,13 @@ export async function authRoutes(app: FastifyInstance) {
 
     const token = await createPasswordResetToken(email);
 
-    if (token && env.NODE_ENV === 'development') {
-      request.log.info({ resetToken: token }, 'Password reset token generated');
+    if (token) {
+      const { subject, html } = buildPasswordResetEmail(token);
+      const sent = await sendSystemEmail({ to: email, subject, html });
+
+      if (!sent && env.NODE_ENV === 'development') {
+        request.log.info({ resetToken: token }, 'Password reset token (SMTP not configured)');
+      }
     }
 
     // Always return success to prevent email enumeration

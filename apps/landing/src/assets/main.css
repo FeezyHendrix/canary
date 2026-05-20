@@ -1,0 +1,89 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+@import "tailwindcss";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  font-family: "Inter", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Code block highlighting */
+.code-block {
+  font-family: "Geist", monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.token.keyword {
+  color: #c678dd;
+}
+.token.string {
+  color: #98c379;
+}
+.token.function {
+  color: #61afef;
+}
+.token.property {
+  color: #e06c75;
+}
+.token.comment {
+  color: #5c6370;
+}
+.token.punctuation {
+  color: #abb2bf;
+}
+.token.number {
+  color: #d19a66;
+}
+.token.operator {
+  color: #56b6c2;
+}
+.token.boolean {
+  color: #d19a66;
+}
+
+.font-neue {
+  font-family: "PP Neue Montreal", sans-serif;
+}
+
+.font-tiempos {
+  font-family: "Tiempos", Georgia, serif;
+}
+
+.font-geist {
+  font-family: "Geist", sans-serif;
+}
+/* PP Neue Montreal Font */
+
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("/fonts/pp-neue-montreal-font/ppneuemontreal-medium.otf")
+    format("opentype");
+  font-weight: 500;
+  font-style: medium;
+  font-display: swap;
+}
+
+/* Tiempos Font */
+@font-face {
+  font-family: "Tiempos";
+  src: url("/fonts/test-tiempos-font/TestTiemposText-RegularItalic.otf")
+    format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Geist Font */
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/geist-font-1.7.0/geist-font-1.7.0/fonts/Geist/webfonts/Geist-SemiBold.woff2")
+    format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
